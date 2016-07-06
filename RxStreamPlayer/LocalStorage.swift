@@ -22,15 +22,15 @@ public enum StorageType {
 public protocol LocalStorageType {
 	var itemStateChanged: Observable<(uid: String, from: CacheState, to: CacheState)> { get }
 	var storageCleared: Observable<StorageType> { get }
-	func createCacheProvider(uid: String, targetMimeType: String?) -> CacheProvider
+	func createCacheProvider(uid: String, targetMimeType: String?) -> CacheProviderType
 	/// Directory for temp storage.
 	/// Data may be deleted from this directory if it's size exceeds allowable size (set by tempStorageDiskSpace)
-	func saveToTempStorage(provider: CacheProvider) -> NSURL?
-	func saveToPermanentStorage(provider: CacheProvider) -> NSURL?
+	func saveToTempStorage(provider: CacheProviderType) -> NSURL?
+	func saveToPermanentStorage(provider: CacheProviderType) -> NSURL?
 	func getFromStorage(uid: String) -> NSURL?
 	var temporaryDirectory: NSURL { get }
 	var tempStorageDirectory: NSURL { get }
-	func saveToTemporaryFolder(provider: CacheProvider) -> NSURL?
+	func saveToTemporaryFolder(provider: CacheProviderType) -> NSURL?
 	var permanentStorageDirectory: NSURL { get }
 	var tempStorageDiskSpace: UInt { get }
 	func calculateSize() -> Observable<StorageSize>
@@ -139,16 +139,16 @@ extension LocalNsUserDefaultsStorage : LocalStorageType {
 		}
 	}
 	
-	internal func saveTo(destination: NSURL, provider: CacheProvider) -> NSURL? {
+	internal func saveTo(destination: NSURL, provider: CacheProviderType) -> NSURL? {
 		return provider.saveData(destination,
 		                                   fileExtension: ContentTypeDefinition.getFileExtensionFromMime(provider.contentMimeType ?? ""))
 	}
 	
-	public func createCacheProvider(uid: String, targetMimeType: String?) -> CacheProvider {
+	public func createCacheProvider(uid: String, targetMimeType: String?) -> CacheProviderType {
 		return MemoryCacheProvider(uid: uid, contentMimeType: targetMimeType)
 	}
 	
-	public func saveToTempStorage(provider: CacheProvider) -> NSURL? {
+	public func saveToTempStorage(provider: CacheProviderType) -> NSURL? {
 		let currentState = getItemState(provider.uid)
 		
 		if let file = saveTo(tempStorageDirectory, provider: provider), fileName = file.lastPathComponent {
@@ -165,7 +165,7 @@ extension LocalNsUserDefaultsStorage : LocalStorageType {
 		return nil
 	}
 	
-	public func saveToPermanentStorage(provider: CacheProvider) -> NSURL? {
+	public func saveToPermanentStorage(provider: CacheProviderType) -> NSURL? {
 		let currentState = getItemState(provider.uid)
 		
 		if let file = saveTo(permanentStorageDirectory, provider: provider), fileName = file.lastPathComponent {
@@ -192,7 +192,7 @@ extension LocalNsUserDefaultsStorage : LocalStorageType {
 		userDefaults.saveData(permanentStorageDictionary, forKey: LocalNsUserDefaultsStorage.permanentFileStorageId)
 	}
 	
-	public func saveToTemporaryFolder(provider: CacheProvider) -> NSURL? {
+	public func saveToTemporaryFolder(provider: CacheProviderType) -> NSURL? {
 		return saveTo(temporaryDirectory, provider: provider)
 	}
 	

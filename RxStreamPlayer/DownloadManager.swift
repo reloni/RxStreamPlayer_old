@@ -45,10 +45,10 @@ public enum PendingTaskPriority: Int {
 }
 
 public class PendingTask {
-	internal let task: StreamDataTaskProtocol
+	internal let task: StreamDataTaskType
 	public internal(set) var priority: PendingTaskPriority
 	public internal(set) var taskDependenciesCount: UInt = 1
-	public init(task: StreamDataTaskProtocol, priority: PendingTaskPriority = .Normal) {
+	public init(task: StreamDataTaskType, priority: PendingTaskPriority = .Normal) {
 		self.task = task
 		self.priority = priority
 	}
@@ -62,10 +62,10 @@ public class DownloadManager {
 	
 	public let saveData: Bool
 	public let fileStorage: LocalStorageType
-	internal let httpUtilities: HttpUtilitiesProtocol
+	internal let httpUtilities: HttpUtilitiesType
 	//internal let queue = dispatch_queue_create("com.cloudmusicplayer.downloadmanager.serialqueue", DISPATCH_QUEUE_SERIAL)
 	
-	internal init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilitiesProtocol = HttpUtilities(),
+	internal init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilitiesType = HttpUtilities(),
 	              simultaneousTasksCount: UInt, runningTaskCheckTimeout: Double) {
 		self.saveData = saveData
 		self.fileStorage = fileStorage
@@ -74,11 +74,11 @@ public class DownloadManager {
 		self.runningTaskCheckTimeout = runningTaskCheckTimeout <= 0.0 ? 1.0 : runningTaskCheckTimeout
 	}
 	
-	public convenience init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilitiesProtocol = HttpUtilities()) {
+	public convenience init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilitiesType = HttpUtilities()) {
 		self.init(saveData: saveData, fileStorage: fileStorage, httpUtilities: httpUtilities, simultaneousTasksCount: 1, runningTaskCheckTimeout: 5)
 	}
 	
-	internal func saveData(cacheProvider: CacheProvider?) -> NSURL? {
+	internal func saveData(cacheProvider: CacheProviderType?) -> NSURL? {
 		if let cacheProvider = cacheProvider where saveData {
 			return fileStorage.saveToTempStorage(cacheProvider)
 		}
@@ -99,7 +99,7 @@ public class DownloadManager {
 		}
 	}
 	
-	internal func getPendingOrLocalTask(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> StreamDataTaskProtocol? {
+	internal func getPendingOrLocalTask(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> StreamDataTaskType? {
 		if let runningTask = pendingTasks[identifier.streamResourceUid] {
 			runningTask.taskDependenciesCount += 1
 			if runningTask.priority.rawValue < priority.rawValue {
@@ -122,7 +122,7 @@ public class DownloadManager {
 		return nil
 	}
 	
-	internal func createDownloadTask(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> Observable<StreamDataTaskProtocol?> {
+	internal func createDownloadTask(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> Observable<StreamDataTaskType?> {
 		return Observable.create { [weak self] observer in
 			guard let object = self else { observer.onCompleted(); return NopDisposable.instance }
 			
@@ -243,14 +243,11 @@ extension DownloadManager : DownloadManagerType {
 			guard let object = self else { observer.onCompleted(); return NopDisposable.instance }
 			
 			let disposable = object.createDownloadTask(identifier, priority: priority).single().catchError{ error in
-				print("catch error while creating download task: \((error as NSError).localizedDescription)")
-				print("rx error: \((error as? RxError)?.debugDescription)")
 				observer.onNext(DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(url: "", uid: identifier.streamResourceUid).asResult())
 				observer.onCompleted()
 				return Observable.empty()
 				}.flatMapLatest { result -> Observable<Void> in
 					guard let task = result else {
-						print("not url: \(identifier.streamResourceUid)")
 						observer.onNext(DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(url: "", uid: identifier.streamResourceUid).asResult())
 						observer.onCompleted()
 						return Observable.empty()

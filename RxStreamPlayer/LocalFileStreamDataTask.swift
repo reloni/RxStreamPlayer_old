@@ -5,11 +5,11 @@ import RxHttpClient
 public class LocalFileStreamDataTask {
 	public let uid: String
 	public var resumed: Bool = false
-	public internal(set) var cacheProvider: CacheProvider?
+	public internal(set) var cacheProvider: CacheProviderType?
 	public let filePath: NSURL
 	internal let subject = PublishSubject<StreamTaskResult>()
 	
-	public init?(uid: String, filePath: String, provider: CacheProvider? = nil) {
+	public init?(uid: String, filePath: String, provider: CacheProviderType? = nil) {
 		if !NSFileManager.fileExistsAtPath(filePath, isDirectory: false) { return nil }
 		self.uid = uid
 		self.filePath = NSURL(fileURLWithPath: filePath)
@@ -17,13 +17,9 @@ public class LocalFileStreamDataTask {
 			self.cacheProvider = MemoryCacheProvider(uid: uid)
 		}
 	}
-	
-	deinit {
-		print("LocalFileStreamDataTask deinit")
-	}
 }
 
-extension LocalFileStreamDataTask : StreamDataTaskProtocol {
+extension LocalFileStreamDataTask : StreamDataTaskType {
 	public var taskProgress: Observable<StreamTaskResult> {
 		return subject.shareReplay(1)
 	}
@@ -73,4 +69,4 @@ public class LocalFileResponse {
 	}
 }
 
-extension LocalFileResponse : NSHTTPURLResponseProtocol { }
+extension LocalFileResponse : NSHTTPURLResponseType { }

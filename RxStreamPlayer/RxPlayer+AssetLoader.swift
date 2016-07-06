@@ -74,8 +74,8 @@ extension Observable where Element : ResultType {
 			
 			// local variables
 			var resourceLoadingRequests = [Int: AVAssetResourceLoadingRequestProtocol]()
-			var response: NSHTTPURLResponseProtocol?
-			var cacheProvider: CacheProvider?
+			var response: NSHTTPURLResponseType?
+			var cacheProvider: CacheProviderType?
 			
 			
 			// functions
@@ -88,7 +88,7 @@ extension Observable where Element : ResultType {
 			}
 			
 			// processing requests
-			func processRequests(cacheProvider: CacheProvider) {
+			func processRequests(cacheProvider: CacheProviderType) {
 				resourceLoadingRequests.map { key, loadingRequest in
 					if let contentInformationRequest = loadingRequest.getContentInformationRequest(), response = response {
 						contentInformationRequest.byteRangeAccessSupported = true
