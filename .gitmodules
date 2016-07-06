@@ -1,0 +1,12 @@
+[submodule "Carthage/Checkouts/OHHTTPStubs"]
+	path = Carthage/Checkouts/OHHTTPStubs
+	url = https://8198bd60f93f0fce18f4008b2d79b0ad1f4a5624@github.com/AliSoftware/OHHTTPStubs.git
+[submodule "Carthage/Checkouts/RxHttpClient"]
+	path = Carthage/Checkouts/RxHttpClient
+	url = https://8198bd60f93f0fce18f4008b2d79b0ad1f4a5624@github.com/Reloni/RxHttpClient.git
+[submodule "Carthage/Checkouts/RxSwift"]
+	path = Carthage/Checkouts/RxSwift
+	url = https://8198bd60f93f0fce18f4008b2d79b0ad1f4a5624@github.com/ReactiveX/RxSwift.git
+[submodule "Carthage/Checkouts/realm-cocoa"]
+	path = Carthage/Checkouts/realm-cocoa
+	url = https://8198bd60f93f0fce18f4008b2d79b0ad1f4a5624@github.com/realm/realm-cocoa.git
