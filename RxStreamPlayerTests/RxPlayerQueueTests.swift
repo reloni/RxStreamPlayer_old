@@ -1,14 +1,6 @@
-//
-//  PlayerQueueTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 29.03.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
 import RxSwift
-@testable import CloudMusicPlayer
+@testable import RxStreamPlayer
 
 class RxPlayerQueueTests: XCTestCase {
 	//var player: RxPlayer!

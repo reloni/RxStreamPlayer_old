@@ -1,13 +1,5 @@
-//
-//  RealmMediaLibraryTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 11.05.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
-@testable import CloudMusicPlayer
+@testable import RxStreamPlayer
 import RealmSwift
 
 class RealmMediaLibraryTests: XCTestCase {
@@ -713,16 +705,18 @@ class RealmMediaLibraryTests: XCTestCase {
 	
 	func testNotCreatePlayListWithEmptyName() {
 		let lib = RealmMediaLibrary()
+		let expectation = expectationWithDescription("Should throw correct exception")
 		do {
 			try lib.createPlayList("")
 		}
-		catch {
-			guard let error = error as? CustomErrorType else {
-				XCTFail("Should throw correct exception")
-				return
-			}
-			XCTAssertEqual(error.errorCode(), MediaLibraryErroros.emptyPlayListName.errorCode())
+		catch MediaLibraryErroros.emptyPlayListName {
+			expectation.fulfill()
+		} catch {
+			XCTFail("Should throw correct exception")
 		}
+		
+		waitForExpectationsWithTimeout(1, handler: nil)
+		
 		let realm = try! Realm()
 		XCTAssertEqual(0, realm.objects(RealmPlayList).count)
 	}
@@ -743,7 +737,7 @@ class RealmMediaLibraryTests: XCTestCase {
 		
 		let expectation = expectationWithDescription("Access from another thread")
 
-		DispatchQueue.async(.Utility) {
+		dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
 			// trying to access properties
 			// if synchronization don't work exception will be thrown
 			

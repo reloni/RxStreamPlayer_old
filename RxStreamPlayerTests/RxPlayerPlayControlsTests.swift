@@ -1,16 +1,9 @@
-//
-//  RxPlayerTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 10.04.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
 import RxSwift
 @testable import RxStreamPlayer
+@testable import RxHttpClient
 import RealmSwift
-import SwiftyJSON
+//import SwiftyJSON
 
 class RxPlayerPlayControlsTests: XCTestCase {
 	let bag = DisposeBag()
@@ -409,8 +402,10 @@ class RxPlayerPlayControlsTests: XCTestCase {
 		let correctCurrentItemExpectation = expectationWithDescription("Should switch to next item after error")
 		player.playerEvents.bindNext { e in
 			
-			if case .Error(let error) = e where error.code == DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(url: "", uid: "").errorCode() {
-				errorExpectation.fulfill()
+			if case .Error(let error) = e {// where error.code == DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(url: "", uid: "").errorCode() {
+				if case DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists = error {
+					errorExpectation.fulfill()
+				}
 			} else if case PlayerEvents.CurrentItemChanged(let newItem) = e {
 				if newItem?.streamIdentifier.streamResourceUid == "https://test.com/track2.mp3" {
 					correctCurrentItemExpectation.fulfill()
@@ -448,6 +443,7 @@ class RxPlayerPlayControlsTests: XCTestCase {
 		XCTAssertNil(player.current, "Should skip all items")
 	}
 
+	/*
 	func testStartPlayingItemsFromMediaLibraryPlayList() {
 		// setup fake http
 		let streamObserver = NSURLSessionDataEventsObserver()
@@ -504,5 +500,5 @@ class RxPlayerPlayControlsTests: XCTestCase {
 		XCTAssertEqual(player.currentItems.count, 3, "Check queue has three items")
 		XCTAssertTrue(player.playing)
 		XCTAssertEqual(player.current?.streamIdentifier.streamResourceUid, "disk://Music/Track1.mp3")
-	}
+	}*/
 }

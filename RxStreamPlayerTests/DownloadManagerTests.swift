@@ -1,11 +1,3 @@
-//
-//  DownloadManagerTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 12.04.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
 import RxSwift
 import RxTests

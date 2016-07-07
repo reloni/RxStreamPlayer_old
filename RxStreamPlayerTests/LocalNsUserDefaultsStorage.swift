@@ -1,15 +1,8 @@
-//
-//  LocalStorageTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 05.04.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
 import RxBlocking
 import RxSwift
-@testable import CloudMusicPlayer
+@testable import RxStreamPlayer
+import RxHttpClient
 
 class LocalNsUserDefaultsStorageTests: XCTestCase {
 	var tempStorageDir: NSURL!
@@ -246,7 +239,7 @@ class LocalNsUserDefaultsStorageTests: XCTestCase {
 		
 		XCTAssertEqual(2, storage.tempStorageDictionary.count)
 		XCTAssertEqual(1, storage.permanentStorageDictionary.count)
-		
+
 		XCTAssertEqual(2, NSFileManager.defaultManager().contentsOfDirectoryAtURL(tempStorageDir)?.count)
 		XCTAssertEqual(1, NSFileManager.defaultManager().contentsOfDirectoryAtURL(permanentStorageDir)?.count)
 		XCTAssertEqual(1, NSFileManager.defaultManager().contentsOfDirectoryAtURL(temporaryDir)?.count)

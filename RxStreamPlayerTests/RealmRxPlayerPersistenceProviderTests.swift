@@ -1,13 +1,5 @@
-//
-//  RealmRxPlayerPersistanceProviderTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 06.06.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
-@testable import CloudMusicPlayer
+@testable import RxStreamPlayer
 import RealmSwift
 
 class RealmRxPlayerPersistanceProviderTests: XCTestCase {

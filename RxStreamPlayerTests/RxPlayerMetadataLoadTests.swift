@@ -1,13 +1,6 @@
-//
-//  MetadataLoadTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 14.04.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
-@testable import CloudMusicPlayer
+@testable import RxStreamPlayer
+@testable import RxHttpClient
 import AVFoundation
 import RxSwift
 import RealmSwift
@@ -182,7 +175,8 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
 			guard case Result.error(let error) = result else { return }
-			XCTAssertEqual((error as? CustomErrorType)?.errorCode(), DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(url: "", uid: "").errorCode())
+			guard case DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(_, let uid) = error else { XCTFail("Should return correct error"); return }
+			XCTAssertEqual("wrong://testitem.com", uid)
 			metadataLoadExpectation.fulfill()
 		}.addDisposableTo(bag)
 		

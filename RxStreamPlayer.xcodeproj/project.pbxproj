@@ -17,7 +17,6 @@
 		6E5B3CE41D2D16E800775D9F /* Dictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CE31D2D16E800775D9F /* Dictionary.swift */; };
 		6E5B3D0B1D2D450000775D9F /* Fake.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3D0A1D2D450000775D9F /* Fake.swift */; };
 		6E5B3D0C1D2D456000775D9F /* RxSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AA01D2BF4BD00EC581E /* RxSwift.framework */; };
-		6E5B3D0E1D2D46E400775D9F /* RxCocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AA21D2BF4DA00EC581E /* RxCocoa.framework */; };
 		6E5B3D0F1D2D46F300775D9F /* RxHttpClient.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AA81D2BF5EE00EC581E /* RxHttpClient.framework */; };
 		6E5B3D101D2D471B00775D9F /* Realm.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AAC1D2BFD3800EC581E /* Realm.framework */; };
 		6E5B3D111D2D471B00775D9F /* RealmSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AAA1D2BFD0900EC581E /* RealmSwift.framework */; };
@@ -50,6 +49,17 @@
 		6E9A3AA91D2BF5EE00EC581E /* RxHttpClient.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AA81D2BF5EE00EC581E /* RxHttpClient.framework */; };
 		6E9A3AAB1D2BFD0900EC581E /* RealmSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AAA1D2BFD0900EC581E /* RealmSwift.framework */; };
 		6E9A3AAD1D2BFD3800EC581E /* Realm.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AAC1D2BFD3800EC581E /* Realm.framework */; };
+		6ECD09061D2E56E10087180B /* LocalFileStreamDataTaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF51D2D44A200775D9F /* LocalFileStreamDataTaskTests.swift */; };
+		6ECD09071D2E573D0087180B /* LocalNsUserDefaultsStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF61D2D44A200775D9F /* LocalNsUserDefaultsStorage.swift */; };
+		6ECD09091D2E5AD00087180B /* Excensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ECD09081D2E5AD00087180B /* Excensions.swift */; };
+		6ECD090A1D2E5E0F0087180B /* NSFileManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF71D2D44A200775D9F /* NSFileManagerTests.swift */; };
+		6ECD090B1D2E68820087180B /* RealmMediaLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF81D2D44A200775D9F /* RealmMediaLibraryTests.swift */; };
+		6ECD090C1D2E7A700087180B /* RealmRxPlayerPersistenceProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF91D2D44A200775D9F /* RealmRxPlayerPersistenceProviderTests.swift */; };
+		6ECD090D1D2E7A9E0087180B /* RxPlayerMetadataLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFA1D2D44A200775D9F /* RxPlayerMetadataLoadTests.swift */; };
+		6ECD09101D2E7C2D0087180B /* MetadataTest.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 6ECD090F1D2E7C2D0087180B /* MetadataTest.mp3 */; };
+		6ECD09121D2E87660087180B /* RxPlayerPlayControlsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFB1D2D44A200775D9F /* RxPlayerPlayControlsTests.swift */; };
+		6ECD09131D2E8C4D0087180B /* RxPlayerQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFC1D2D44A200775D9F /* RxPlayerQueueTests.swift */; };
+		6ECD09141D2E8CA40087180B /* StreamResourceIdentifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFD1D2D44A200775D9F /* StreamResourceIdentifierTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,7 +74,6 @@
 
 /* Begin PBXFileReference section */
 		6E09517C1D2BED56005C4BD1 /* RxStreamPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = RxStreamPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		6E09517F1D2BED56005C4BD1 /* RxStreamPlayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RxStreamPlayer.h; sourceTree = "<group>"; };
 		6E0951811D2BED56005C4BD1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6E0951861D2BED56005C4BD1 /* RxStreamPlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RxStreamPlayerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6E09518D1D2BED56005C4BD1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -75,7 +84,6 @@
 		6E5B3CDF1D2D0C1F00775D9F /* CMTime.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CMTime.swift; sourceTree = "<group>"; };
 		6E5B3CE11D2D0F6200775D9F /* NSMutableOrderedSet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSMutableOrderedSet.swift; sourceTree = "<group>"; };
 		6E5B3CE31D2D16E800775D9F /* Dictionary.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Dictionary.swift; sourceTree = "<group>"; };
-		6E5B3CF11D2D44A100775D9F /* RxStreamPlayerTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RxStreamPlayerTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		6E5B3CF21D2D44A200775D9F /* AssetResourceLoaderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AssetResourceLoaderTests.swift; sourceTree = "<group>"; };
 		6E5B3CF31D2D44A200775D9F /* CloudResourceLoaderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CloudResourceLoaderTests.swift; sourceTree = "<group>"; };
 		6E5B3CF41D2D44A200775D9F /* DownloadManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DownloadManagerTests.swift; sourceTree = "<group>"; };
@@ -116,6 +124,8 @@
 		6E9A3AA81D2BF5EE00EC581E /* RxHttpClient.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RxHttpClient.framework; path = Dependencies/iOS/RxHttpClient.framework; sourceTree = "<group>"; };
 		6E9A3AAA1D2BFD0900EC581E /* RealmSwift.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealmSwift.framework; path = Dependencies/iOS/RealmSwift.framework; sourceTree = "<group>"; };
 		6E9A3AAC1D2BFD3800EC581E /* Realm.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Realm.framework; path = Dependencies/iOS/Realm.framework; sourceTree = "<group>"; };
+		6ECD09081D2E5AD00087180B /* Excensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Excensions.swift; sourceTree = "<group>"; };
+		6ECD090F1D2E7C2D0087180B /* MetadataTest.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = MetadataTest.mp3; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,7 +149,6 @@
 				6E5B3D101D2D471B00775D9F /* Realm.framework in Frameworks */,
 				6E5B3D111D2D471B00775D9F /* RealmSwift.framework in Frameworks */,
 				6E5B3D0F1D2D46F300775D9F /* RxHttpClient.framework in Frameworks */,
-				6E5B3D0E1D2D46E400775D9F /* RxCocoa.framework in Frameworks */,
 				6E5B3D0C1D2D456000775D9F /* RxSwift.framework in Frameworks */,
 				6E0951871D2BED56005C4BD1 /* RxStreamPlayer.framework in Frameworks */,
 			);
@@ -197,7 +206,6 @@
 				6E9A3A871D2BF49200EC581E /* StreamPlayerUtilities.swift */,
 				6E9A3A881D2BF49200EC581E /* StreamResourceIdentifier.swift */,
 				6E9A3A891D2BF49200EC581E /* StreamResourceLoader.swift */,
-				6E09517F1D2BED56005C4BD1 /* RxStreamPlayer.h */,
 				6E0951811D2BED56005C4BD1 /* Info.plist */,
 			);
 			path = RxStreamPlayer;
@@ -206,8 +214,9 @@
 		6E09518A1D2BED56005C4BD1 /* RxStreamPlayerTests */ = {
 			isa = PBXGroup;
 			children = (
+				6ECD090E1D2E7C0D0087180B /* Misc */,
 				6E09518D1D2BED56005C4BD1 /* Info.plist */,
-				6E5B3CF11D2D44A100775D9F /* RxStreamPlayerTests-Bridging-Header.h */,
+				6ECD09081D2E5AD00087180B /* Excensions.swift */,
 				6E5B3D0A1D2D450000775D9F /* Fake.swift */,
 				6E5B3CF21D2D44A200775D9F /* AssetResourceLoaderTests.swift */,
 				6E5B3CF31D2D44A200775D9F /* CloudResourceLoaderTests.swift */,
@@ -238,6 +247,15 @@
 			);
 			name = CommonExtensions;
 			path = RxStreamPlayer/CommonExtensions;
+			sourceTree = SOURCE_ROOT;
+		};
+		6ECD090E1D2E7C0D0087180B /* Misc */ = {
+			isa = PBXGroup;
+			children = (
+				6ECD090F1D2E7C2D0087180B /* MetadataTest.mp3 */,
+			);
+			name = Misc;
+			path = RxStreamPlayerTests/Misc;
 			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
@@ -340,6 +358,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6ECD09101D2E7C2D0087180B /* MetadataTest.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -372,7 +391,6 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Dependencies/iOS/RxSwift.framework",
-				"$(SRCROOT)/Dependencies/iOS/RxCocoa.framework",
 				"$(SRCROOT)/Dependencies/iOS/Realm.framework",
 				"$(SRCROOT)/Dependencies/iOS/RealmSwift.framework",
 				"$(SRCROOT)/Dependencies/iOS/RxHttpClient.framework",
@@ -443,9 +461,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6ECD090C1D2E7A700087180B /* RealmRxPlayerPersistenceProviderTests.swift in Sources */,
+				6ECD090B1D2E68820087180B /* RealmMediaLibraryTests.swift in Sources */,
+				6ECD09061D2E56E10087180B /* LocalFileStreamDataTaskTests.swift in Sources */,
+				6ECD090A1D2E5E0F0087180B /* NSFileManagerTests.swift in Sources */,
 				6E5B3D161D2D4B4600775D9F /* DownloadManagerTests.swift in Sources */,
+				6ECD09121D2E87660087180B /* RxPlayerPlayControlsTests.swift in Sources */,
+				6ECD09131D2E8C4D0087180B /* RxPlayerQueueTests.swift in Sources */,
+				6ECD09091D2E5AD00087180B /* Excensions.swift in Sources */,
 				6E5B3D0B1D2D450000775D9F /* Fake.swift in Sources */,
+				6ECD090D1D2E7A9E0087180B /* RxPlayerMetadataLoadTests.swift in Sources */,
+				6ECD09141D2E8CA40087180B /* StreamResourceIdentifierTests.swift in Sources */,
 				6E5B3D141D2D498200775D9F /* AssetResourceLoaderTests.swift in Sources */,
+				6ECD09071D2E573D0087180B /* LocalNsUserDefaultsStorage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -606,7 +634,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.AntonEfimenko.RxStreamPlayerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "RxStreamPlayerTests/RxStreamPlayerTests-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -623,7 +651,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.AntonEfimenko.RxStreamPlayerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "RxStreamPlayerTests/RxStreamPlayerTests-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 			};
 			name = Release;
 		};

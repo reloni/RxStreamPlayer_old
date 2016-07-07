@@ -1,12 +1,5 @@
-//
-//  NSFileManagerTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 19.04.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
+@testable import RxStreamPlayer
 
 class NSFileManagerTests: XCTestCase {
 	
@@ -31,7 +24,7 @@ class NSFileManagerTests: XCTestCase {
 		let secondFile = dir.URLByAppendingPathComponent("second.dat")
 		secondData.writeToURL(secondFile, atomically: true)
 		
-		XCTAssertEqual(NSFileManager.defaultManager().getDirectorySize(dir, recursive: false), UInt64(firstData.length) + UInt64(secondData.length))
+		XCTAssertEqual(NSFileManager.getDirectorySize(dir, recursive: false), UInt64(firstData.length) + UInt64(secondData.length))
 
 		dir.deleteFile()
 	}
@@ -53,11 +46,12 @@ class NSFileManagerTests: XCTestCase {
 		let subDirSecondFile = subDir.URLByAppendingPathComponent("sub second.dat")
 		secondData.writeToURL(subDirSecondFile, atomically: true)
 		
-		XCTAssertEqual(NSFileManager.defaultManager().getDirectorySize(dir, recursive: true), 2 * (UInt64(firstData.length) + UInt64(secondData.length)))
+		XCTAssertEqual(NSFileManager.getDirectorySize(dir, recursive: true), 2 * (UInt64(firstData.length) + UInt64(secondData.length)))
 		
 		dir.deleteFile()
 	}
 	
+	/*
 	func testReturnContentsOfDirectory() {
 		let dir = NSFileManager.getOrCreateSubDirectory(NSFileManager.documentsDirectory, subDirName: "DirSizeTestRecursive")!
 		
@@ -74,5 +68,5 @@ class NSFileManagerTests: XCTestCase {
 		XCTAssertEqual(secondFile, contents?[1])
 		
 		dir.deleteFile()
-	}
+	}*/
 }

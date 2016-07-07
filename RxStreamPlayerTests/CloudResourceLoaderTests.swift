@@ -1,11 +1,3 @@
-//
-//  CloudResourceLoaderTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 12.05.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
 import RxStreamPlayer
 import RealmSwift

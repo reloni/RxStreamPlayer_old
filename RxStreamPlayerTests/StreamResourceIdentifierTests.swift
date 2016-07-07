@@ -1,13 +1,5 @@
-//
-//  StreamResourceIdentifierTests.swift
-//  CloudMusicPlayer
-//
-//  Created by Anton Efimenko on 07.04.16.
-//  Copyright © 2016 Anton Efimenko. All rights reserved.
-//
-
 import XCTest
-import CloudMusicPlayer
+@testable import RxStreamPlayer
 
 class StreamResourceIdentifierTests: XCTestCase {
 	
