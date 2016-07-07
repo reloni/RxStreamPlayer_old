@@ -376,6 +376,7 @@
 				"$(SRCROOT)/Dependencies/iOS/RxHttpClient.framework",
 				"$(SRCROOT)/Dependencies/iOS/Realm.framework",
 				"$(SRCROOT)/Dependencies/iOS/RealmSwift.framework",
+				"$(SRCROOT)/Dependencies/iOS/RxCocoa.framework",
 			);
 			name = "Copy carthage frameworks";
 			outputPaths = (
