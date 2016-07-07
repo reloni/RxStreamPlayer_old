@@ -376,7 +376,6 @@
 				"$(SRCROOT)/Dependencies/iOS/RxHttpClient.framework",
 				"$(SRCROOT)/Dependencies/iOS/Realm.framework",
 				"$(SRCROOT)/Dependencies/iOS/RealmSwift.framework",
-				"$(SRCROOT)/Dependencies/iOS/RxCocoa.framework",
 			);
 			name = "Copy carthage frameworks";
 			outputPaths = (
@@ -398,6 +397,7 @@
 				"$(SRCROOT)/Dependencies/iOS/OHHTTPStubs.framework",
 				"$(SRCROOT)/Dependencies/iOS/RxBlocking.framework",
 				"$(SRCROOT)/Dependencies/iOS/RxTests.framework",
+				"$(SRCROOT)/Dependencies/iOS/RxCocoa.framework",
 			);
 			name = "Copy carthage frameworks";
 			outputPaths = (
