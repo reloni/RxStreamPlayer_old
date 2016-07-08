@@ -1,0 +1,4 @@
+github "ReactiveX/RxSwift" == 2.6
+github "Reloni/RxHttpClient" == 0.1
+github "AliSoftware/OHHTTPStubs" == 5.1.0
+github "realm/realm-cocoa" == 1.0.1
