@@ -1,0 +1,29 @@
+import Foundation
+import AVFoundation
+
+public protocol StreamPlayerUtilitiesProtocol {
+	func createavUrlAsset(url: NSURL) -> AVURLAssetProtocol
+	func createavPlayerItem(asset: AVURLAssetProtocol) -> AVPlayerItemProtocol
+	func createavPlayerItem(url: NSURL) -> AVPlayerItemProtocol
+	func createInternalPlayer(hostPlayer: RxPlayer, eventsCallback: (PlayerEvents) -> ()) -> InternalPlayerType
+}
+
+public class StreamPlayerUtilities { }
+
+extension StreamPlayerUtilities: StreamPlayerUtilitiesProtocol {
+	public func createavUrlAsset(url: NSURL) -> AVURLAssetProtocol {
+		return AVURLAsset(URL: url)
+	}
+	
+	public func createavPlayerItem(asset: AVURLAssetProtocol) -> AVPlayerItemProtocol {
+		return AVPlayerItem(asset: asset as! AVURLAsset)
+	}
+	
+	public func createavPlayerItem(url: NSURL) -> AVPlayerItemProtocol {
+		return AVPlayerItem(URL: url)
+	}
+	
+	public func createInternalPlayer(hostPlayer: RxPlayer, eventsCallback: (PlayerEvents) -> ()) -> InternalPlayerType {
+		return InternalPlayer(hostPlayer: hostPlayer, eventsCallback: eventsCallback)
+	}
+}
