@@ -30,9 +30,17 @@ public enum PlayerEvents : PlayerEventType {
 }
 
 public class RxPlayer {
+	public var streamResourceLoaders = [StreamResourceLoaderType]()
+	public let downloadManager: DownloadManagerType
+	public let mediaLibrary: MediaLibraryType
+	public internal(set) var playing: Bool = false
+	
+	internal let streamPlayerUtilities: StreamPlayerUtilitiesProtocol
+	internal var itemsSet = NSMutableOrderedSet()
+	internal var playerEventsSubject = PublishSubject<PlayerEvents>()
+	internal let serialScheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)
 	internal var uiApplication: UIApplicationType?
 	internal var backgroundTaskIdentifier: Int?
-	public var streamResourceLoaders = [StreamResourceLoaderType]()
 	
 	internal lazy var eventsCallback: (PlayerEvents) -> () = {
 		return { [weak self] (event: PlayerEvents) in
@@ -43,15 +51,6 @@ public class RxPlayer {
 	internal lazy var internalPlayer: InternalPlayerType = { [unowned self] in
 		return self.streamPlayerUtilities.createInternalPlayer(self, eventsCallback: self.eventsCallback)
 	}()
-	internal let downloadManager: DownloadManagerType
-	internal let mediaLibrary: MediaLibraryType
-	internal let streamPlayerUtilities: StreamPlayerUtilitiesProtocol
-	
-	internal var itemsSet = NSMutableOrderedSet()
-	internal var playerEventsSubject = PublishSubject<PlayerEvents>()
-	
-	internal let serialScheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)
-	public internal(set) var playing: Bool = false
 	
 	public var currentItem: Observable<RxPlayerQueueItem?> {
 		return Observable.create { [weak self] observer in
@@ -153,7 +152,7 @@ public class RxPlayer {
 		}
 	}
 	
-	internal init(repeatQueue: Bool, shuffleQueue: Bool, downloadManager: DownloadManagerType,
+	public init(repeatQueue: Bool, shuffleQueue: Bool, downloadManager: DownloadManagerType,
 	              streamPlayerUtilities: StreamPlayerUtilitiesProtocol, mediaLibrary: MediaLibraryType = RealmMediaLibrary()) {
 		self.repeatQueue = repeatQueue
 		self.shuffleQueue = shuffleQueue
@@ -168,12 +167,8 @@ public class RxPlayer {
 								httpUtilities: HttpUtilities()), streamPlayerUtilities: StreamPlayerUtilities(), mediaLibrary: RealmMediaLibrary())
 	}
 	
-	internal convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, downloadManager: DownloadManagerType) {
+	public convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, downloadManager: DownloadManagerType) {
 		self.init(repeatQueue: repeatQueue, shuffleQueue: shuffleQueue, downloadManager: downloadManager, streamPlayerUtilities: StreamPlayerUtilities(),
 		          mediaLibrary: RealmMediaLibrary())
-	}
-	
-	deinit {
-		print("Rx player deinit")
 	}
 }

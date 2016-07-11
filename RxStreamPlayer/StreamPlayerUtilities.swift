@@ -8,7 +8,9 @@ public protocol StreamPlayerUtilitiesProtocol {
 	func createInternalPlayer(hostPlayer: RxPlayer, eventsCallback: (PlayerEvents) -> ()) -> InternalPlayerType
 }
 
-public class StreamPlayerUtilities { }
+public class StreamPlayerUtilities {
+	public init() { }
+}
 
 extension StreamPlayerUtilities: StreamPlayerUtilitiesProtocol {
 	public func createavUrlAsset(url: NSURL) -> AVURLAssetProtocol {
