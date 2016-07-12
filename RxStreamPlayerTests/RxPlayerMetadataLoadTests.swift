@@ -19,16 +19,57 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		super.tearDown()
 	}
 	
+	/*
+	let dir = NSFileManager.getOrCreateSubDirectory(NSFileManager.documentsDirectory, subDirName: "DirSizeTest")!
+	
+	let firstData = "first data".dataUsingEncoding(NSUTF8StringEncoding)!
+	let secondData = "second data".dataUsingEncoding(NSUTF8StringEncoding)!
+	
+	let firstFile = dir.URLByAppendingPathComponent("first.dat")
+	firstData.writeToURL(firstFile, atomically: true)
+	*/
+	
 	func testLoadMetadataFromFile() {
 		let metadataFile = NSURL(fileURLWithPath: NSBundle(forClass: RxPlayerMetadataLoadTests.self).pathForResource("MetadataTest", ofType: "mp3")!)
+		let metaDataRaw = NSData(contentsOfURL: metadataFile)!
+		let subDataRaw = NSData(data: metaDataRaw.subdataWithRange(NSRange(location: 0, length: 1024 * 220)))
+		
+		let tempDir = NSFileManager.getOrCreateSubDirectory(NSFileManager.documentsDirectory, subDirName: NSUUID().UUIDString)!
+		let subDataFile = tempDir.URLByAppendingPathComponent("MetaDataTest.mp3")
+		subDataRaw.writeToURL(subDataFile, atomically: true)
+		
 		let player = RxPlayer()
 		let item = player.addLast("http://testitem.com")
-		let metadata = player.loadFileMetadata(item.streamIdentifier, file: metadataFile, utilities: StreamPlayerUtilities())
+		let metadata = player.loadFileMetadata(item.streamIdentifier, file: subDataFile, utilities: StreamPlayerUtilities())
 		XCTAssertEqual(metadata?.album, "Of Her")
 		XCTAssertEqual(metadata?.artist, "Yusuke Tsutsumi")
 		XCTAssertEqual(metadata?.duration?.asTimeString, "04: 27")
 		XCTAssertEqual(metadata?.title, "Love")
 		XCTAssertNotNil(metadata?.artwork)
+		
+		tempDir.deleteFile()
+	}
+	
+	func testLoadMetadataFromFile2() {
+		let metadataFile = NSURL(fileURLWithPath: NSBundle(forClass: RxPlayerMetadataLoadTests.self).pathForResource("MetadataTest2", ofType: "mp3")!)
+		let metaDataRaw = NSData(contentsOfURL: metadataFile)!
+		let subDataRaw = NSData(data: metaDataRaw.subdataWithRange(NSRange(location: 0, length: 1024 * 5)))
+		
+		let tempDir = NSFileManager.getOrCreateSubDirectory(NSFileManager.documentsDirectory, subDirName: NSUUID().UUIDString)!
+		let subDataFile = tempDir.URLByAppendingPathComponent("MetaDataTest2.mp3")
+		subDataRaw.writeToURL(subDataFile, atomically: true)
+		
+		
+		let player = RxPlayer()
+		let item = player.addLast("http://testitem.com")
+		let metadata = player.loadFileMetadata(item.streamIdentifier, file: subDataFile, utilities: StreamPlayerUtilities())
+		XCTAssertEqual(metadata?.album, "Red Dust & Spanish Lace")
+		XCTAssertEqual(metadata?.artist, "Acoustic Alchemy")
+		//XCTAssertEqual(metadata?.duration?.asTimeString, "03: 08")
+		XCTAssertEqual(metadata?.title, "Mr. Chow")
+		XCTAssertNil(metadata?.artwork)
+		
+		tempDir.deleteFile()
 	}
 	
 	func testNotLoadMetadataFromNotExistedFile() {
