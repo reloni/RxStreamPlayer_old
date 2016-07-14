@@ -19,16 +19,48 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		super.tearDown()
 	}
 	
+	func createFileWithChunkData(file: NSURL, destinationDirectory: NSURL, location: Int, length: Int) -> NSURL {
+		let rawData = NSData(contentsOfURL: file)!
+		let subDataRaw = NSData(data: rawData.subdataWithRange(NSRange(location: location, length: length)))
+		
+		let subDataFile = destinationDirectory.URLByAppendingPathComponent("\(NSUUID().UUIDString).\(file.lastPathComponent ?? "dat")")
+		subDataRaw.writeToURL(subDataFile, atomically: true)
+		
+		return subDataFile
+	}
+	
 	func testLoadMetadataFromFile() {
 		let metadataFile = NSURL(fileURLWithPath: NSBundle(forClass: RxPlayerMetadataLoadTests.self).pathForResource("MetadataTest", ofType: "mp3")!)
+		let tempDir = NSFileManager.getOrCreateSubDirectory(NSFileManager.documentsDirectory, subDirName: NSUUID().UUIDString)!
+		let subDataFile = createFileWithChunkData(metadataFile, destinationDirectory: tempDir, location: 0, length: 1024 * 220)
+		
 		let player = RxPlayer()
 		let item = player.addLast("http://testitem.com")
-		let metadata = player.loadFileMetadata(item.streamIdentifier, file: metadataFile, utilities: StreamPlayerUtilities())
+		let metadata = player.loadFileMetadata(item.streamIdentifier, file: subDataFile, utilities: StreamPlayerUtilities())
 		XCTAssertEqual(metadata?.album, "Of Her")
 		XCTAssertEqual(metadata?.artist, "Yusuke Tsutsumi")
 		XCTAssertEqual(metadata?.duration?.asTimeString, "04: 27")
 		XCTAssertEqual(metadata?.title, "Love")
 		XCTAssertNotNil(metadata?.artwork)
+		
+		tempDir.deleteFile()
+	}
+	
+	func testLoadMetadataFromFile2() {
+		let metadataFile = NSURL(fileURLWithPath: NSBundle(forClass: RxPlayerMetadataLoadTests.self).pathForResource("MetadataTest2", ofType: "mp3")!)
+		let tempDir = NSFileManager.getOrCreateSubDirectory(NSFileManager.documentsDirectory, subDirName: NSUUID().UUIDString)!
+		let subDataFile = createFileWithChunkData(metadataFile, destinationDirectory: tempDir, location: 0, length: 1024 * 5)
+		
+		let player = RxPlayer()
+		let item = player.addLast("http://testitem.com")
+		let metadata = player.loadFileMetadata(item.streamIdentifier, file: subDataFile, utilities: StreamPlayerUtilities())
+		XCTAssertEqual(metadata?.album, "Red Dust & Spanish Lace")
+		XCTAssertEqual(metadata?.artist, "Acoustic Alchemy")
+		//XCTAssertEqual(metadata?.duration?.asTimeString, "03: 08")
+		XCTAssertEqual(metadata?.title, "Mr. Chow")
+		XCTAssertNil(metadata?.artwork)
+		
+		tempDir.deleteFile()
 	}
 	
 	func testNotLoadMetadataFromNotExistedFile() {
@@ -124,7 +156,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		
 		let item = player.addLast("https://testitem.com")
 		
-		let metadataLoadExpectation = expectationWithDescription("Should load metadta from local file")
+		let metadataLoadExpectation = expectationWithDescription("Should load metadta from remote")
 		let downloadTaskCancelationExpectation = expectationWithDescription("Should cancel task")
 		
 		// simulate http request 
@@ -161,8 +193,99 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 			}.addDisposableTo(bag)
 		
 		waitForExpectationsWithTimeout(2, handler: nil)
+		
+		// check if metadata correctly saved in media library
+		let track = try! player.mediaLibrary.getTrackByUid(item.streamIdentifier.streamResourceUid)
+		XCTAssertEqual(track?.album.name, "Of Her")
+		XCTAssertEqual(track?.artist.name, "Yusuke Tsutsumi")
+		XCTAssertEqual(track?.duration.asTimeString, "04: 27")
+		XCTAssertEqual(track?.title, "Love")
+		XCTAssertNotNil(track?.album.artwork)
 	}
 	
+	func testLoadChunkedMetadataFromRemote() {
+		let metadataFile = NSURL(fileURLWithPath: NSBundle(forClass: RxPlayerMetadataLoadTests.self).pathForResource("MetadataTest2", ofType: "mp3")!)
+		let metadataRawData = NSData(contentsOfURL: metadataFile)!
+		
+		let storage = LocalNsUserDefaultsStorage()
+		let streamObserver = NSURLSessionDataEventsObserver()
+		let httpUtilities = FakeHttpUtilities()
+		httpUtilities.streamObserver = streamObserver
+		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
+		httpUtilities.fakeSession = session
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
+		let item = player.addLast("https://testitem.com")
+		
+		let metadataLoadExpectation = expectationWithDescription("Should load metadta from remote")
+		let downloadTaskCancelationExpectation = expectationWithDescription("Should cancel task")
+		
+		var canceled = false
+		var sendedDataLength = 0
+		
+		// simulate http request
+		session.task?.taskProgress.observeOn(SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)).bindNext { e in
+			if case FakeDataTaskMethods.resume(let tsk) = e {
+				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+					let response = FakeResponse(contentLenght: Int64(metadataRawData.length))
+					response.MIMEType = "audio/mpeg"
+					streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: tsk,
+						response: response, completion: { _ in }))
+					
+					var currentOffset = 0
+					let sendDataChunk = 1024 * 5
+					while !canceled {
+						if metadataRawData.length - currentOffset > sendDataChunk {
+							let range = NSMakeRange(currentOffset, sendDataChunk)
+							currentOffset += sendDataChunk
+							sendedDataLength = currentOffset
+							let subdata = metadataRawData.subdataWithRange(range)
+							dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+								streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: subdata))
+							}
+							NSThread.sleepForTimeInterval(0.005)
+						} else {
+							let range = NSMakeRange(currentOffset, metadataRawData.length - currentOffset)
+							let subdata = metadataRawData.subdataWithRange(range)
+							sendedDataLength = metadataRawData.length
+							dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+								streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: subdata))
+							}
+							break
+						}
+					}
+				}
+			} else if case FakeDataTaskMethods.cancel = e {
+				downloadTaskCancelationExpectation.fulfill()
+				canceled = true
+			}
+			}.addDisposableTo(bag)
+		
+		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
+			guard case Result.success(let box) = result else { return }
+			let metadata = box.value
+			XCTAssertEqual(metadata?.album, "Red Dust & Spanish Lace")
+			XCTAssertEqual(metadata?.artist, "Acoustic Alchemy")
+			XCTAssertEqual(metadata?.duration?.asTimeString, "03: 08")
+			XCTAssertEqual(metadata?.title, "Mr. Chow")
+			XCTAssertNil(metadata?.artwork)
+			
+			metadataLoadExpectation.fulfill()
+			}.addDisposableTo(bag)
+		
+		waitForExpectationsWithTimeout(4, handler: nil)
+		
+		XCTAssertTrue(sendedDataLength <= Int(Double(player.matadataMaximumLoadLength) * 1.05), "Check sended less data than was set as maximum limit for metadata gequests")
+		
+		// check if metadata correctly saved in media library
+		let track = try! player.mediaLibrary.getTrackByUid(item.streamIdentifier.streamResourceUid)
+		XCTAssertEqual(track?.album.name, "Red Dust & Spanish Lace")
+		XCTAssertEqual(track?.artist.name, "Acoustic Alchemy")
+		XCTAssertEqual(track?.duration.asTimeString, "03: 08")
+		XCTAssertEqual(track?.title, "Mr. Chow")
+		XCTAssertNil(track?.album.artwork)
+	}
+		
 	func testReturnErrorForItemWithUnknownScheme() {
 		let storage = LocalNsUserDefaultsStorage()
 		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: HttpUtilities())

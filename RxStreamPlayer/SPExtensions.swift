@@ -47,7 +47,7 @@ extension AVAssetResourceLoadingDataRequest : AVAssetResourceLoadingDataRequestP
 
 
 // AVAsset
-public protocol AVAssetProtocol {
+public protocol AVAssetProtocol : class {
 	var duration: CMTime { get }
 	func getMetadata() -> [String: AnyObject?]
 	func loadValuesAsynchronouslyForKeys(keys: [String], completionHandler: (() -> Void)?)
@@ -74,6 +74,7 @@ extension AVAsset: AVAssetProtocol {
 public protocol AVURLAssetProtocol: AVAssetProtocol {
 	var URL: NSURL { get }
 	func getResourceLoader() -> AVAssetResourceLoaderProtocol
+	func loadValuesAsynchronouslyForKeys(keys: [String], completionHandler: (() -> Void)?)
 }
 extension AVURLAsset: AVURLAssetProtocol {
 	public func getResourceLoader() -> AVAssetResourceLoaderProtocol {
