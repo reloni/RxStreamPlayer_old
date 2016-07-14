@@ -41,6 +41,8 @@ public class RxPlayer {
 	internal let serialScheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)
 	internal var uiApplication: UIApplicationType?
 	internal var backgroundTaskIdentifier: Int?
+	/// Maximum amount of data that would me downloaded in order to retrieve metadata 
+	internal let matadataMaximumLoadLength = 1024 * 256
 	
 	internal lazy var eventsCallback: (PlayerEvents) -> () = {
 		return { [weak self] (event: PlayerEvents) in

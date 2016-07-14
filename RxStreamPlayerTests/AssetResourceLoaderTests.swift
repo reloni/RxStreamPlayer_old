@@ -343,4 +343,22 @@ class AssetResourceLoaderTests: XCTestCase {
 		XCTAssertEqual(contentRequest1.contentLength, 22, "Check correct content length of first request")
 		XCTAssertEqual(contentRequest1.contentType, "public.mp3", "Check correct mime type of first")
 	}
+	
+	func testAvUrlAssetResourceLoaderUseDelegateWhenCustomSchemeProvided() {
+		let utilities = StreamPlayerUtilities()
+		let asset = utilities.createavUrlAsset(NSURL(baseUrl: "fake://test.com", parameters: nil)!)
+		let observer = AVAssetResourceLoaderEventsObserver()
+		asset.getResourceLoader().setDelegate(observer, queue: dispatch_get_global_queue(QOS_CLASS_UTILITY, 0))
+		
+		let expectation = expectationWithDescription("Should invoke resource loader observer methods")
+		
+		let bag = DisposeBag()
+		observer.loaderEvents.bindNext { event in
+			if case AssetLoadingEvents.shouldWaitForLoading = event { expectation.fulfill() }
+		}.addDisposableTo(bag)
+		
+		asset.loadValuesAsynchronouslyForKeys(["duration"], completionHandler: nil)
+		
+		waitForExpectationsWithTimeout(1, handler: nil)
+	}
 }
