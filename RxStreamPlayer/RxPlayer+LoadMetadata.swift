@@ -66,40 +66,40 @@ extension RxPlayer {
 			asset.getResourceLoader().setDelegate(assetObserver, queue: dispatch_get_global_queue(QOS_CLASS_UTILITY, 0))
 			let downloadObservable = downloadManager.createDownloadObservable(resource, priority: .Low)
 			
-			var receivedDataLen = 0
+			// counter of loaded data
+			var receivedDataLen: UInt = 0
 			
-			// start streaming data to AVURLAsset
-			let loadingDisposable = downloadObservable.catchError { error in
+			// creating new observable in order to start downloading data and send it to AVAssetResourceLoader
+			// and suspend downloading when we reach download limit
+			let assetStreamDisposable = Observable<StreamTaskResult>.create { downloadObserver in
+				// disposable variable, that will used inside itself in order to suspend downloading
+				var downloadDisposable: Disposable?
+				
+				downloadDisposable = downloadObservable.catchError { error in
 					observer.onNext(Result.error(error))
 					observer.onCompleted()
 					return Observable.empty()
-				}.doOnNext { e in
-				if case Result.success(let box) = e {
-					if case StreamTaskEvents.CacheData(let prov) = box.value {
-						receivedDataLen = prov.getCurrentData().length
-						// if we reach maximum amoun of allowed data to download
-						// try to load metadata from file
-						// and after that dispose this download task
-						if receivedDataLen >= object.matadataMaximumLoadLength {
-							if let file = downloadManager.fileStorage.saveToTemporaryFolder(prov) {
-								let metadata = object.loadFileMetadata(resource, file: file, utilities: utilities)
-								if let metadata = metadata {
-									object.mediaLibrary.saveMetadataSafe(metadata, updateExistedObjects: true)
-									
-									#if DEBUG
-										NSLog("Metadata for \(resource.streamResourceUid) loaded. Maximum allowed data received: \(receivedDataLen)")
-									#endif
+					}.observeOn(SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)).doOnNext { e in
+						if case Result.success(let box) = e {
+							if case StreamTaskEvents.CacheData(let prov) = box.value {
+								receivedDataLen = UInt(prov.currentDataLength)
+								// if we reach maximum amount of allowed data to download
+								if receivedDataLen >= object.matadataMaximumLoadLength {
+									// dispose download task
+									downloadDisposable?.dispose()
 								}
-								
-								observer.onNext(Result.success(Box(value: metadata)))
-								file.deleteFile()
 							}
+							
+							// send data to observer (loadWithAsset method will deliver data to AVAssetResourceLoader)
+							downloadObserver.onNext(e)
+						} else if case Result.error(let error) = e {
+							observer.onNext(Result.error(error))
 							observer.onCompleted()
 						}
-					}
-				} else if case Result.error(let error) = e {
-					observer.onNext(Result.error(error))
-					observer.onCompleted()
+				}.subscribe()
+				
+				return AnonymousDisposable {
+					downloadDisposable?.dispose()
 				}
 			}.loadWithAsset(assetEvents: assetObserver.loaderEvents, targetAudioFormat: resource.streamResourceContentType).subscribe()
 			
@@ -125,7 +125,7 @@ extension RxPlayer {
 			}
 			
 			return AnonymousDisposable {
-				loadingDisposable.dispose()
+				assetStreamDisposable.dispose()
 			}
 		}
 	}
