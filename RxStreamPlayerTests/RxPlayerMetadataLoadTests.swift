@@ -302,7 +302,10 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 							dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
 								streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: subdata))
 							}
-							NSThread.sleepForTimeInterval(0.00002)
+							
+							if currentOffset / sendDataChunk > 2 {
+								NSThread.sleepForTimeInterval(0.00001)
+							}
 						} else {
 							let range = NSMakeRange(currentOffset, metadataRawData.length - currentOffset)
 							let subdata = metadataRawData.subdataWithRange(range)
