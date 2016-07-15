@@ -359,6 +359,6 @@ class AssetResourceLoaderTests: XCTestCase {
 		
 		asset.loadValuesAsynchronouslyForKeys(["duration"], completionHandler: nil)
 		
-		waitForExpectationsWithTimeout(2, handler: nil)
+		waitForExpectationsWithTimeout(4, handler: nil)
 	}
 }
