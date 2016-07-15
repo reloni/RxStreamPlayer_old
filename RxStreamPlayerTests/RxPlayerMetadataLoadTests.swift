@@ -304,7 +304,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 							}
 							
 							if currentOffset / sendDataChunk > 2 {
-								NSThread.sleepForTimeInterval(0.00001)
+								NSThread.sleepForTimeInterval(0.001)
 							}
 						} else {
 							let range = NSMakeRange(currentOffset, metadataRawData.length - currentOffset)
