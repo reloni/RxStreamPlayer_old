@@ -77,7 +77,9 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let _ = try? NSFileManager.defaultManager().copyItemAtURL(metadataFile, toURL: copiedFile)
 		storage.tempStorageDictionary["https://testitem.com"] = copiedFile.lastPathComponent
 		
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: FakeHttpUtilities())
+		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: httpClient)
+		
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -110,7 +112,9 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		
+		let httpClient = HttpClient(httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: httpClient)
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -151,7 +155,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -216,7 +220,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -270,7 +274,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -351,7 +355,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		let item = player.addLast("https://testitem.com")
 		
@@ -426,7 +430,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		
 	func testReturnErrorForItemWithUnknownScheme() {
 		let storage = LocalNsUserDefaultsStorage()
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: HttpUtilities())
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: FakeHttpUtilities()))
 
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
