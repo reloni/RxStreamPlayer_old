@@ -94,7 +94,6 @@ typedef int swift_int4  __attribute__((__ext_vector_type__(4)));
 #if defined(__has_feature) && __has_feature(modules)
 @import Foundation;
 @import Foundation.NSURLSession;
-@import ObjectiveC;
 #endif
 
 #pragma clang diagnostic ignored "-Wproperty-attribute-mismatch"
@@ -130,27 +129,6 @@ typedef int swift_int4  __attribute__((__ext_vector_type__(4)));
 
 
 @interface NSURLSession (SWIFT_EXTENSION(RxHttpClient))
-@end
-
-
-SWIFT_CLASS("_TtC12RxHttpClient30NSURLSessionDataEventsObserver")
-@interface NSURLSessionDataEventsObserver : NSObject <NSURLSessionDataDelegate, NSURLSessionDelegate, NSURLSessionTaskDelegate>
-- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
-@end
-
-@class NSURLSessionDataTask;
-@class NSData;
-@class NSURLSessionTask;
-@class NSError;
-
-@interface NSURLSessionDataEventsObserver (SWIFT_EXTENSION(RxHttpClient))
-- (void)URLSession:(NSURLSession * _Nonnull)session dataTask:(NSURLSessionDataTask * _Nonnull)dataTask didReceiveResponse:(NSURLResponse * _Nonnull)response completionHandler:(void (^ _Nonnull)(NSURLSessionResponseDisposition))completionHandler;
-- (void)URLSession:(NSURLSession * _Nonnull)session dataTask:(NSURLSessionDataTask * _Nonnull)dataTask didReceiveData:(NSData * _Nonnull)data;
-- (void)URLSession:(NSURLSession * _Nonnull)session task:(NSURLSessionTask * _Nonnull)task didCompleteWithError:(NSError * _Nullable)error;
-@end
-
-
-@interface NSURLSessionDataEventsObserver (SWIFT_EXTENSION(RxHttpClient))
 @end
 
 

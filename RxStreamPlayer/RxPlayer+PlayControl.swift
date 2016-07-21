@@ -1,8 +1,8 @@
 import Foundation
 import RxSwift
 
-extension RxPlayer {
-	public func play(url: StreamResourceIdentifier, clearQueue: Bool = true) {
+public extension RxPlayer {
+	func play(url: StreamResourceIdentifier, clearQueue: Bool = true) {
 		if clearQueue {
 			initWithNewItems([url])
 			playing = true
@@ -61,7 +61,7 @@ extension RxPlayer {
 		current = item
 	}
 	
-	public func loadStreamResourceByUid(itemUid: String) -> StreamResourceIdentifier {
+	func loadStreamResourceByUid(itemUid: String) -> StreamResourceIdentifier {
 		for loader in streamResourceLoaders {
 			if let streamResource = loader.loadStreamResourceByUid(itemUid) {
 				return streamResource
@@ -71,7 +71,7 @@ extension RxPlayer {
 		return itemUid
 	}
 	
-	public func pause() {
+	func pause() {
 		playing = false
 		if let current = current {
 			playerEventsSubject.onNext(.Pausing(current))
@@ -79,7 +79,7 @@ extension RxPlayer {
 		}
 	}
 	
-	public func resume(force: Bool = false) {
+	func resume(force: Bool = false) {
 		if let current = current {
 			playing = true
 			playerEventsSubject.onNext(.Resuming(current))
@@ -95,7 +95,7 @@ extension RxPlayer {
 		}
 	}
 	
-	public func stop() {
+	func stop() {
 		playing = false
 		if let current = current {
 			playerEventsSubject.onNext(.Stopping(current))

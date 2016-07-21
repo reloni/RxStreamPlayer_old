@@ -8,7 +8,7 @@ class AssetResourceLoaderTests: XCTestCase {
 	var request: FakeRequest!
 	var session: FakeSession!
 	var utilities: FakeHttpUtilities!
-	var httpClient: HttpClientType!
+	var httpClient: HttpClient!
 	var streamObserver: NSURLSessionDataEventsObserver!
 	var avAssetObserver: AVAssetResourceLoaderEventsObserver!
 	var cacheTask: StreamDataTaskType!
@@ -20,13 +20,17 @@ class AssetResourceLoaderTests: XCTestCase {
 		bag = DisposeBag()
 		streamObserver = NSURLSessionDataEventsObserver()
 		request = FakeRequest(url: NSURL(string: "https://test.com"))
-		session = FakeSession(fakeTask: FakeDataTask(completion: nil))
+		let fakeTask = FakeDataTask(completion: nil)
+		fakeTask.originalRequest = request
+		session = FakeSession(fakeTask: fakeTask)
 		utilities = FakeHttpUtilities()
 		utilities.fakeSession = session
 		utilities.streamObserver = streamObserver
 		httpClient = HttpClient(httpUtilities: utilities)
-		cacheTask = utilities.createStreamDataTask(NSUUID().UUIDString, request: request,
-		                                           sessionConfiguration: NSURLSession.defaultConfig,
+		cacheTask = utilities.createStreamDataTask(NSUUID().UUIDString,
+		                                           dataTask: session.task!,
+		                                           httpClient: httpClient,
+		                                           sessionEvents: httpClient.sessionObserver.sessionEvents,
 		                                           cacheProvider: MemoryCacheProvider(uid: NSUUID().UUIDString))
 		avAssetObserver = AVAssetResourceLoaderEventsObserver()
 	}
@@ -342,5 +346,23 @@ class AssetResourceLoaderTests: XCTestCase {
 		XCTAssertTrue(contentRequest1.byteRangeAccessSupported, "Should set first request byteRangeAccessSupported to true")
 		XCTAssertEqual(contentRequest1.contentLength, 22, "Check correct content length of first request")
 		XCTAssertEqual(contentRequest1.contentType, "public.mp3", "Check correct mime type of first")
+	}
+	
+	func testAvUrlAssetResourceLoaderUseDelegateWhenCustomSchemeProvided() {
+		let utilities = StreamPlayerUtilities()
+		let asset = utilities.createavUrlAsset(NSURL(baseUrl: "fake://test.com", parameters: nil)!)
+		let observer = AVAssetResourceLoaderEventsObserver()
+		asset.getResourceLoader().setDelegate(observer, queue: dispatch_get_global_queue(QOS_CLASS_UTILITY, 0))
+		
+		let expectation = expectationWithDescription("Should invoke resource loader observer methods")
+		
+		let bag = DisposeBag()
+		observer.loaderEvents.bindNext { event in
+			if case AssetLoadingEvents.shouldWaitForLoading = event { expectation.fulfill() }
+		}.addDisposableTo(bag)
+		
+		asset.loadValuesAsynchronouslyForKeys(["duration"], completionHandler: nil)
+		
+		waitForExpectationsWithTimeout(4, handler: nil)
 	}
 }

@@ -3,9 +3,9 @@ import RxSwift
 import RxHttpClient
 
 public struct StorageSize {
-	let temporary: UInt64
-	let tempStorage: UInt64
-	let permanentStorage: UInt64
+	public let temporary: UInt64
+	public let tempStorage: UInt64
+	public let permanentStorage: UInt64
 }
 
 public enum CacheState {

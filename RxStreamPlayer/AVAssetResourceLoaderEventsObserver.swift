@@ -23,7 +23,6 @@ public protocol AVAssetResourceLoaderEventsObserverProtocol {
 	}
 	
 	deinit {
-		print("AVAssetResourceLoaderEventsObserver deinit")
 		publishSubject.onNext(.observerDeinit)
 	}
 }
