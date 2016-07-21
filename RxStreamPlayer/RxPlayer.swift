@@ -154,8 +154,8 @@ public class RxPlayer {
 		}
 	}
 	
-	public init(repeatQueue: Bool, shuffleQueue: Bool, downloadManager: DownloadManagerType,
-	              streamPlayerUtilities: StreamPlayerUtilitiesProtocol, mediaLibrary: MediaLibraryType = RealmMediaLibrary()) {
+	internal init(repeatQueue: Bool, shuffleQueue: Bool, downloadManager: DownloadManagerType,
+	              streamPlayerUtilities: StreamPlayerUtilitiesProtocol, mediaLibrary: MediaLibraryType) {
 		self.repeatQueue = repeatQueue
 		self.shuffleQueue = shuffleQueue
 		self.downloadManager = downloadManager
@@ -163,14 +163,33 @@ public class RxPlayer {
 		self.mediaLibrary = mediaLibrary
 	}
 	
+	internal convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, downloadManager: DownloadManagerType, streamPlayerUtilities: StreamPlayerUtilitiesProtocol) {
+		self.init(repeatQueue: repeatQueue,
+		          shuffleQueue: shuffleQueue,
+		          downloadManager: downloadManager,
+		          streamPlayerUtilities: streamPlayerUtilities,
+		          mediaLibrary: RealmMediaLibrary())
+	}
+	
 	public convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, saveData: Bool = false) {
-		self.init(repeatQueue: repeatQueue, shuffleQueue: shuffleQueue,
-		          downloadManager: DownloadManager(saveData: saveData, fileStorage: LocalNsUserDefaultsStorage(persistInformationAboutSavedFiles: saveData),
-								httpUtilities: HttpUtilities()), streamPlayerUtilities: StreamPlayerUtilities(), mediaLibrary: RealmMediaLibrary())
+		let downloadManager = DownloadManager(saveData: saveData,
+		                                      fileStorage: LocalNsUserDefaultsStorage(persistInformationAboutSavedFiles: saveData),
+		                                      httpClient: HttpClient(sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration()))
+		
+		self.init(repeatQueue: repeatQueue,
+		          shuffleQueue: shuffleQueue,
+		          downloadManager: downloadManager,
+		          streamPlayerUtilities: StreamPlayerUtilities(),
+		          mediaLibrary: RealmMediaLibrary())
 	}
 	
 	public convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, downloadManager: DownloadManagerType) {
-		self.init(repeatQueue: repeatQueue, shuffleQueue: shuffleQueue, downloadManager: downloadManager, streamPlayerUtilities: StreamPlayerUtilities(),
+		self.init(repeatQueue: repeatQueue,
+		          shuffleQueue: shuffleQueue,
+		          downloadManager: downloadManager,
+		          streamPlayerUtilities: StreamPlayerUtilities(),
 		          mediaLibrary: RealmMediaLibrary())
 	}
+	
+	
 }

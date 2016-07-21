@@ -2,6 +2,12 @@ import Foundation
 import RxSwift
 import RxHttpClient
 
+extension StreamTaskEvents {
+	func asResult() -> StreamTaskResult {
+		return Result.success(Box(value: self))
+	}
+}
+
 public class LocalFileStreamDataTask {
 	public let uid: String
 	public var resumed: Bool = false

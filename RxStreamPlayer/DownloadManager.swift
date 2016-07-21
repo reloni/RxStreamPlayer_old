@@ -62,20 +62,23 @@ public class DownloadManager {
 	
 	public let saveData: Bool
 	public let fileStorage: LocalStorageType
-	internal let httpUtilities: HttpUtilitiesType
+	internal let httpClient: HttpClientType
+	//internal let httpUtilities: HttpUtilitiesType
 	//internal let queue = dispatch_queue_create("com.cloudmusicplayer.downloadmanager.serialqueue", DISPATCH_QUEUE_SERIAL)
 	
-	internal init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilitiesType = HttpUtilities(),
+	internal init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpClient: HttpClientType,
 	              simultaneousTasksCount: UInt, runningTaskCheckTimeout: Double) {
 		self.saveData = saveData
 		self.fileStorage = fileStorage
-		self.httpUtilities = httpUtilities
+		self.httpClient = httpClient
 		self.simultaneousTasksCount = simultaneousTasksCount == 0 ? 1 : simultaneousTasksCount
 		self.runningTaskCheckTimeout = runningTaskCheckTimeout <= 0.0 ? 1.0 : runningTaskCheckTimeout
 	}
 	
-	public convenience init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilitiesType = HttpUtilities()) {
-		self.init(saveData: saveData, fileStorage: fileStorage, httpUtilities: httpUtilities, simultaneousTasksCount: 1, runningTaskCheckTimeout: 5)
+	public convenience init(saveData: Bool = false,
+	                        fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(),
+	                        httpClient: HttpClientType = HttpClient(sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration())) {
+		self.init(saveData: saveData, fileStorage: fileStorage, httpClient: httpClient, simultaneousTasksCount: 1, runningTaskCheckTimeout: 5)
 	}
 	
 	internal func saveData(cacheProvider: CacheProviderType?) -> NSURL? {
@@ -189,15 +192,22 @@ public class DownloadManager {
 				
 				guard resourceType == .HttpResource || resourceType == .HttpsResource else { observer.onNext(nil); return }
 				
-				guard let urlRequest = object.httpUtilities.createUrlRequest(resourceUrl, parameters: nil, headers: (identifier as? StreamHttpResourceIdentifier)?.streamHttpHeaders) else {
+				//guard let urlRequest = object.httpClient.createUrlRequest(resourceUrl, parameters: nil, headers: (identifier as? StreamHttpResourceIdentifier)?.streamHttpHeaders) else {
+				//	observer.onNext(nil)
+				//	return
+				//}
+				guard let url = NSURL(baseUrl: resourceUrl, parameters: nil) else {
 					observer.onNext(nil)
 					return
 				}
 				
-				let task = object.httpUtilities.createStreamDataTask(identifier.streamResourceUid, request: urlRequest,
-					sessionConfiguration: NSURLSession.defaultConfig,
-					cacheProvider: object.fileStorage.createCacheProvider(identifier.streamResourceUid,
-						targetMimeType: identifier.streamResourceContentType?.definition.MIME))
+				let cacheProvider = object.fileStorage.createCacheProvider(identifier.streamResourceUid, targetMimeType: identifier.streamResourceContentType?.definition.MIME)
+				let urlRequest = object.httpClient.createUrlRequest(url, headers: (identifier as? StreamHttpResourceIdentifier)?.streamHttpHeaders)
+				let task = object.httpClient.createStreamDataTask(urlRequest, cacheProvider: cacheProvider)
+				//let task = object.httpUtilities.createStreamDataTask(identifier.streamResourceUid, request: urlRequest,
+				//	sessionConfiguration: NSURLSession.defaultConfig,
+				//	cacheProvider: object.fileStorage.createCacheProvider(identifier.streamResourceUid,
+				//		targetMimeType: identifier.streamResourceContentType?.definition.MIME))
 				
 				object.pendingTasks[identifier.streamResourceUid] = PendingTask(task: task, priority: priority)
 				observer.onNext(task)

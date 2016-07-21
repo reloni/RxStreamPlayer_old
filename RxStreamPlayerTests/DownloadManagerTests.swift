@@ -4,6 +4,12 @@ import RxTests
 @testable import RxStreamPlayer
 @testable import RxHttpClient
 
+extension HttpClient {
+	convenience init(httpUtilities: HttpUtilitiesType) {
+		self.init(sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration(), httpUtilities: httpUtilities)
+	}
+}
+
 class DownloadManagerTests: XCTestCase {
 	let bag = DisposeBag()
 	
@@ -18,7 +24,7 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testCreateLocalFileStreamTask() {
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		let file = NSFileManager.temporaryDirectory.URLByAppendingPathComponent("\(NSUUID().UUIDString).dat")
 		NSFileManager.defaultManager().createFileAtPath(file.path!, contents: nil, attributes: nil)
 		let task = try! manager.createDownloadTask(file.path!, priority: .High).toBlocking().first()
@@ -29,7 +35,7 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testNotCreateLocalFileStreamTaskForNotExistedFile() {
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		let file = NSFileManager.temporaryDirectory.URLByAppendingPathComponent("\(NSUUID().UUIDString).dat")
 		let task = try! manager.createDownloadTask(file.path!, priority: .Normal).toBlocking().first()
 		XCTAssertNil(task, "Should not create a task")
@@ -37,21 +43,21 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testCreateUrlStreamTask() {
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		let task = try! manager.createDownloadTask("https://somelink.com", priority: .Normal).toBlocking().first()
 		XCTAssertTrue(task is RxHttpClient.StreamDataTask, "Should create instance of StreamDataTask")
 		XCTAssertEqual(1, manager.pendingTasks.count, "Should add task to pending tasks")
 	}
 	
 	func testNotCreateStreamTaskForIncorrectScheme() {
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		let task = try! manager.createDownloadTask("incorrect://somelink.com", priority: .Normal).toBlocking().first()
 		XCTAssertNil(task, "Should not create a task")
 		XCTAssertEqual(0, manager.pendingTasks.count, "Should not add task to pending tasks")
 	}
 	
 	func testReturnPendingTask() {
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		let file = NSFileManager.temporaryDirectory.URLByAppendingPathComponent("\(NSUUID().UUIDString).dat")
 		NSFileManager.defaultManager().createFileAtPath(file.path!, contents: nil, attributes: nil)
 		// create task and add it to pending tasks
@@ -67,7 +73,7 @@ class DownloadManagerTests: XCTestCase {
 	
 	func testReturnLocalFileStreamTaskForUrlIfExistedInStorage() {
 		let fileStorage = LocalNsUserDefaultsStorage()
-		let manager = DownloadManager(saveData: false, fileStorage: fileStorage, httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: fileStorage, httpClient: HttpClient())
 		// create new file in temp storage directory
 		let file = fileStorage.tempStorageDirectory.URLByAppendingPathComponent("\(NSUUID().UUIDString).dat")
 		NSFileManager.defaultManager().createFileAtPath(file.path!, contents: nil, attributes: nil)
@@ -81,7 +87,7 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testThreadSafetyForCreationNewTask() {
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		
 		for _ in 0...100 {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
@@ -101,7 +107,7 @@ class DownloadManagerTests: XCTestCase {
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: httpUtilities)
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		for _ in 0...10 {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
@@ -116,7 +122,7 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testDownloadObservableForIncorrectUrl() {
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 	
 		let errorExpectation = expectationWithDescription("Should send error message")
 		manager.createDownloadObservable("wrong://test.com", priority: .Normal).bindNext { result in
@@ -137,7 +143,7 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testDownloadObservableForNotExistedFile() {
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		
 		let errorExpectation = expectationWithDescription("Should send error message")
 		manager.createDownloadObservable("/Path/To/Not/existed.file", priority: .Normal).bindNext { result in
@@ -184,7 +190,7 @@ class DownloadManagerTests: XCTestCase {
 			}
 			}.addDisposableTo(bag)
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: httpUtilities)
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let successExpectation = expectationWithDescription("Should receive success message")
 		let cacheDataExpectation = expectationWithDescription("Should receive cache data event")
@@ -230,7 +236,7 @@ class DownloadManagerTests: XCTestCase {
 			}
 			}.addDisposableTo(bag)
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: httpUtilities)
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let errorExpectation = expectationWithDescription("Should receive error message")
 		manager.createDownloadObservable("https://test.com", priority: .Normal).bindNext { result in
@@ -250,7 +256,7 @@ class DownloadManagerTests: XCTestCase {
 		let provider = MemoryCacheProvider(uid: NSUUID().UUIDString, contentMimeType: "audio/mpeg")
 		let saveData = "some data".dataUsingEncoding(NSUTF8StringEncoding)!
 		provider.appendData(saveData)
-		let manager = DownloadManager(saveData: true, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: true, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		let file = manager.saveData(provider)
 		if let file = file, restoredData = NSData(contentsOfURL: file) {
 			XCTAssertTrue(restoredData.isEqualToData(saveData), "Check saved data equal to cached data")
@@ -265,7 +271,7 @@ class DownloadManagerTests: XCTestCase {
 		let saveData = "some data".dataUsingEncoding(NSUTF8StringEncoding)!
 		provider.appendData(saveData)
 		// create manager and set saveData to false
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: HttpUtilities())
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient())
 		let file = manager.saveData(provider)
 		XCTAssertNil(file, "Should not return saved file")
 	}
@@ -301,7 +307,7 @@ class DownloadManagerTests: XCTestCase {
 			}
 			}.addDisposableTo(bag)
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: httpUtilities)
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		// first subscription
 		let successExpectation = expectationWithDescription("Should receive success message")
@@ -348,7 +354,7 @@ class DownloadManagerTests: XCTestCase {
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
 
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: httpUtilities)
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let disposable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
 		NSThread.sleepForTimeInterval(0.2)
@@ -366,7 +372,7 @@ class DownloadManagerTests: XCTestCase {
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: httpUtilities)
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let firstObservable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
 		let secondObservable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
@@ -401,19 +407,22 @@ class DownloadManagerTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
+		let httpClient = HttpClient(httpUtilities: httpUtilities)
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpUtilities: httpUtilities, simultaneousTasksCount: 1,
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient, simultaneousTasksCount: 1,
 		                              runningTaskCheckTimeout: 1)
 		
 		// create task, start it and add to pending tasks
-		let runningTask = httpUtilities.createStreamDataTask("http://test.com", request: httpUtilities.createUrlRequest(
-			NSURL(baseUrl: "http://test.com", parameters: nil)!, headers: nil), sessionConfiguration: NSURLSession.defaultConfig, cacheProvider: nil)
+		let runningTask = httpClient.createStreamDataTask(httpUtilities.createUrlRequest("http://test.com", parameters: nil)!, cacheProvider: nil)
+		//let runningTask = httpUtilities.createStreamDataTask("http://test.com", request: httpUtilities.createUrlRequest(
+		//	NSURL(baseUrl: "http://test.com", parameters: nil)!, headers: nil), sessionConfiguration: NSURLSession.defaultConfig, cacheProvider: nil)
 		runningTask.resume()
 		manager.pendingTasks[runningTask.uid] = PendingTask(task: runningTask)
 		
 		// create another task and add to pendings too
-		let newTask = httpUtilities.createStreamDataTask("http://test.com", request: httpUtilities.createUrlRequest(
-			NSURL(baseUrl: "http://test2.com", parameters: nil)!, headers: nil), sessionConfiguration: NSURLSession.defaultConfig, cacheProvider: nil)
+		let newTask = httpClient.createStreamDataTask(httpUtilities.createUrlRequest("http://test2.com", parameters: nil)!, cacheProvider: nil)
+		//let newTask = httpUtilities.createStreamDataTask("http://test.com", request: httpUtilities.createUrlRequest(
+		//	NSURL(baseUrl: "http://test2.com", parameters: nil)!, headers: nil), sessionConfiguration: NSURLSession.defaultConfig, cacheProvider: nil)
 		manager.pendingTasks[newTask.uid] = PendingTask(task: newTask)
 		
 		// create PublishSubject, that will simutale task check interval
