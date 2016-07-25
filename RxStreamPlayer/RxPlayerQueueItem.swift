@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import RxSwift
 
-public class RxPlayerQueueItem {
+public final class RxPlayerQueueItem {
 	public var parent: RxPlayerQueueItem? {
 		return player.getItemBefore(streamIdentifier)
 	}

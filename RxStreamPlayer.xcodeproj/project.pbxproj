@@ -35,7 +35,6 @@
 		6E9A3A981D2BF49200EC581E /* RxPlayer+Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A821D2BF49200EC581E /* RxPlayer+Queue.swift */; };
 		6E9A3A991D2BF49200EC581E /* RxPlayerQueueItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A831D2BF49200EC581E /* RxPlayerQueueItem.swift */; };
 		6E9A3A9A1D2BF49200EC581E /* SPExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A841D2BF49200EC581E /* SPExtensions.swift */; };
-		6E9A3A9C1D2BF49200EC581E /* StreamDataTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A861D2BF49200EC581E /* StreamDataTask.swift */; };
 		6E9A3A9D1D2BF49200EC581E /* StreamPlayerUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A871D2BF49200EC581E /* StreamPlayerUtilities.swift */; };
 		6E9A3A9E1D2BF49200EC581E /* StreamResourceIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A881D2BF49200EC581E /* StreamResourceIdentifier.swift */; };
 		6E9A3A9F1D2BF49200EC581E /* StreamResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A891D2BF49200EC581E /* StreamResourceLoader.swift */; };
@@ -182,8 +181,8 @@
 				6E9A3A781D2BF49200EC581E /* LocalFileStreamDataTask.swift */,
 				6E9A3A791D2BF49200EC581E /* LocalStorage.swift */,
 				6E9A3A7A1D2BF49200EC581E /* MediaLibrary.swift */,
-				6E9A3A7B1D2BF49200EC581E /* PlayerStatePersistenceProvider.swift */,
 				6E9A3A7C1D2BF49200EC581E /* RealmMediaLibrary.swift */,
+				6E9A3A7B1D2BF49200EC581E /* PlayerStatePersistenceProvider.swift */,
 				6E9A3A7D1D2BF49200EC581E /* RxPlayer.swift */,
 				6E9A3A7E1D2BF49200EC581E /* RxPlayer+AssetLoader.swift */,
 				6E9A3A7F1D2BF49200EC581E /* RxPlayer+Background.swift */,
@@ -421,7 +420,6 @@
 				6E9A3A8C1D2BF49200EC581E /* DownloadManager.swift in Sources */,
 				6E5B3CDA1D2D08F900775D9F /* NSFileManager.swift in Sources */,
 				6E9A3A9D1D2BF49200EC581E /* StreamPlayerUtilities.swift in Sources */,
-				6E9A3A9C1D2BF49200EC581E /* StreamDataTask.swift in Sources */,
 				6E9A3A991D2BF49200EC581E /* RxPlayerQueueItem.swift in Sources */,
 				6E5B3CDE1D2D0A8B00775D9F /* NSUserDefaults.swift in Sources */,
 				6E5B3CE41D2D16E800775D9F /* Dictionary.swift in Sources */,

@@ -4,87 +4,87 @@ import RxSwift
 @testable import RxHttpClient
 @testable import RxStreamPlayer
 
-public class FakeRequest : NSMutableURLRequestType {
-	public var HTTPMethod: String? = "GET"
+final class FakeRequest : NSMutableURLRequestType {
+	var HTTPMethod: String? = "GET"
 	var headers = [String: String]()
-	public var URL: NSURL?
-	public var allHTTPHeaderFields: [String: String]? {
+	var URL: NSURL?
+	var allHTTPHeaderFields: [String: String]? {
 		return headers
 	}
 	
-	public init(url: NSURL? = nil) {
+	init(url: NSURL? = nil) {
 		self.URL = url
 	}
 	
-	public func addValue(value: String, forHTTPHeaderField: String) {
+	func addValue(value: String, forHTTPHeaderField: String) {
 		headers[forHTTPHeaderField] = value
 	}
 	
-	public func setHttpMethod(method: String) {
+	func setHttpMethod(method: String) {
 		HTTPMethod = method
 	}
 }
 
-public class FakeResponse : NSURLResponseType, NSHTTPURLResponseType {
-	public var expectedContentLength: Int64
-	public var MIMEType: String?
+final class FakeResponse : NSURLResponseType, NSHTTPURLResponseType {
+	var expectedContentLength: Int64
+	var MIMEType: String?
 	
-	public init(contentLenght: Int64) {
+	init(contentLenght: Int64) {
 		expectedContentLength = contentLenght
 	}
 }
 
-public enum FakeDataTaskMethods {
+enum FakeDataTaskMethods {
 	case resume(FakeDataTask)
 	case suspend(FakeDataTask)
 	case cancel(FakeDataTask)
 }
 
-public class FakeDataTask : NSURLSessionDataTaskType {
+final class FakeDataTask : NSObject, NSURLSessionDataTaskType {
 	@available(*, unavailable, message="completion unavailiable. Use FakeSession.sendData instead (session observer will used to send data)")
 	var completion: DataTaskResult?
 	let taskProgress = PublishSubject<FakeDataTaskMethods>()
-	var originalRequest: NSMutableURLRequestType?
+	var originalRequest: NSURLRequestType?
 	var isCancelled = false
 	var resumeInvokeCount = 0
 	
-	public init(completion: DataTaskResult?) {
+	init(completion: DataTaskResult?) {
 		//self.completion = completion
 	}
 	
-	public func resume() {
+	func resume() {
 		resumeInvokeCount += 1
 		taskProgress.onNext(.resume(self))
 	}
 	
-	public func suspend() {
+	func suspend() {
 		taskProgress.onNext(.suspend(self))
 	}
 	
-	public func cancel() {
+	func cancel() {
 		if !isCancelled {
 			taskProgress.onNext(.cancel(self))
 			isCancelled = true
 		}
 	}
 	
-	public func getOriginalMutableUrlRequest() -> NSMutableURLRequestType? {
+	func getOriginalUrlRequest() -> NSURLRequestType? {
 		return originalRequest
 	}
 }
 
-public class FakeSession : NSURLSessionType {
+final class FakeSession : NSURLSessionType {
 	var task: FakeDataTask?
 	var isInvalidatedAndCanceled = false
 	
-	public var configuration: NSURLSessionConfiguration = NSURLSessionConfiguration.defaultSessionConfiguration()
+	var configuration: NSURLSessionConfiguration = NSURLSessionConfiguration.defaultSessionConfiguration()
 	
-	public init(fakeTask: FakeDataTask? = nil) {
+	init(fakeTask: FakeDataTask? = nil) {
 		task = fakeTask
 	}
 	
 	/// Send data as stream (this data should be received through session delegate)
-	public func sendData(task: NSURLSessionDataTaskType, data: NSData?, streamObserver: NSURLSessionDataEventsObserver) {
+	func sendData(task: NSURLSessionDataTaskType, data: NSData?, streamObserver: NSURLSessionDataEventsObserver) {
 		if let data = data {
 			streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: self, dataTask: task, data: data))
 		}
@@ -93,11 +93,11 @@ public class FakeSession : NSURLSessionType {
 		streamObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self, dataTask: task, error: nil))
 	}
 	
-	public func sendError(task: NSURLSessionDataTaskType, error: NSError, streamObserver: NSURLSessionDataEventsObserver) {
+	func sendError(task: NSURLSessionDataTaskType, error: NSError, streamObserver: NSURLSessionDataEventsObserver) {
 		streamObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self, dataTask: task, error: error))
 	}
 	
-	public func dataTaskWithURL(url: NSURL, completionHandler: DataTaskResult) -> NSURLSessionDataTaskType {
+	func dataTaskWithURL(url: NSURL, completionHandler: DataTaskResult) -> NSURLSessionDataTaskType {
 		guard let task = self.task else {
 			return FakeDataTask(completion: completionHandler)
 		}
@@ -105,7 +105,7 @@ public class FakeSession : NSURLSessionType {
 		return task
 	}
 	
-	public func dataTaskWithRequest(request: NSMutableURLRequestType, completionHandler: DataTaskResult) -> NSURLSessionDataTaskType {
+	func dataTaskWithRequest(request: NSURLRequestType, completionHandler: DataTaskResult) -> NSURLSessionDataTaskType {
 		fatalError("should not invoke dataTaskWithRequest with completion handler")
 		guard let task = self.task else {
 			return FakeDataTask(completion: completionHandler)
@@ -115,7 +115,7 @@ public class FakeSession : NSURLSessionType {
 		return task
 	}
 	
-	public func dataTaskWithRequest(request: NSMutableURLRequestType) -> NSURLSessionDataTaskType {
+	func dataTaskWithRequest(request: NSURLRequestType) -> NSURLSessionDataTaskType {
 		guard let task = self.task else {
 			return FakeDataTask(completion: nil)
 		}
@@ -123,7 +123,7 @@ public class FakeSession : NSURLSessionType {
 		return task
 	}
 	
-	public func invalidateAndCancel() {
+	func invalidateAndCancel() {
 		// set flag that session was invalidated and canceled
 		isInvalidatedAndCanceled = true
 		
@@ -160,7 +160,7 @@ public class FakeHttpUtilities : HttpUtilitiesType {
 		return session
 	}
 	
-	public func createUrlSessionStreamObserver() -> NSURLSessionDataEventsObserverType {
+	func createUrlSessionStreamObserver() -> NSURLSessionDataEventsObserverType {
 		//		guard let observer = fakeObserver else {
 		//			return FakeUrlSessionStreamObserver()
 		//		}
@@ -171,9 +171,9 @@ public class FakeHttpUtilities : HttpUtilitiesType {
 		return observer
 	}
 	
-	public func createStreamDataTask(taskUid: String, request: NSMutableURLRequestType, sessionConfiguration: NSURLSessionConfiguration, cacheProvider: CacheProviderType?) -> StreamDataTaskType {
-		return StreamDataTask(taskUid: NSUUID().UUIDString, request: request, httpUtilities: self, sessionConfiguration: sessionConfiguration, cacheProvider: cacheProvider)
-		//return FakeStreamDataTask(request: request, observer: createUrlSessionStreamObserver(), httpUtilities: self)
+	func createStreamDataTask(taskUid: String, dataTask: NSURLSessionDataTaskType, httpClient: HttpClientType,
+	                          sessionEvents: Observable<SessionDataEvents>, cacheProvider: CacheProviderType?) -> StreamDataTaskType {
+		return StreamDataTask(taskUid: NSUUID().UUIDString, dataTask: dataTask, httpClient: httpClient, sessionEvents: sessionEvents, cacheProvider: cacheProvider)
 	}
 }
 
@@ -249,41 +249,41 @@ public class FakeAVAssetResourceLoadingRequest : NSObject, AVAssetResourceLoadin
 	}
 }
 
-public class FakeInternalPlayer : InternalPlayerType {
+final class FakeInternalPlayer : InternalPlayerType {
 	//public let publishSubject = PublishSubject<PlayerEvents>()
 	//public let metadataSubject = BehaviorSubject<AudioItemMetadata?>(value: nil)
-	public let durationSubject = BehaviorSubject<CMTime?>(value: nil)
-	public let currentTimeSubject = BehaviorSubject<(currentTime: CMTime?, duration: CMTime?)?>(value: nil)
-	public let hostPlayer: RxPlayer
-	public let eventsCallback: (PlayerEvents) -> ()
+	let durationSubject = BehaviorSubject<CMTime?>(value: nil)
+	let currentTimeSubject = BehaviorSubject<(currentTime: CMTime?, duration: CMTime?)?>(value: nil)
+	let hostPlayer: RxPlayer
+	let eventsCallback: (PlayerEvents) -> ()
 	
-	public var nativePlayer: AVPlayerProtocol?
+	var nativePlayer: AVPlayerProtocol?
 	
 	//public var events: Observable<PlayerEvents> { return publishSubject }
 	//public var metadata: Observable<AudioItemMetadata?> { return metadataSubject.shareReplay(1) }
-	public var currentTime: Observable<(currentTime: CMTime?, duration: CMTime?)?> { return currentTimeSubject.shareReplay(1) }
+	var currentTime: Observable<(currentTime: CMTime?, duration: CMTime?)?> { return currentTimeSubject.shareReplay(1) }
 	
-	public func resume() {
+	func resume() {
 		//publishSubject.onNext(.Resumed)
 		eventsCallback(.Resumed)
 	}
 	
-	public func pause() {
+	func pause() {
 		//publishSubject.onNext(.Paused)
 		eventsCallback(.Paused)
 	}
 	
-	public func play(resource: StreamResourceIdentifier) -> Observable<Result<Void>> {
+	func play(resource: StreamResourceIdentifier) -> Observable<Void> {
 		eventsCallback(.Started)
 		return Observable.empty()
 	}
 	
-	public func stop() {
+	func stop() {
 		//publishSubject.onNext(.Stopped)
 		eventsCallback(.Stopped)
 	}
 	
-	public func finishPlayingCurrentItem() {
+	func finishPlayingCurrentItem() {
 		eventsCallback(.FinishPlayingCurrentItem)
 		hostPlayer.toNext(true)
 	}
@@ -294,50 +294,50 @@ public class FakeInternalPlayer : InternalPlayerType {
 		self.nativePlayer = nativePlayer
 	}
 	
-	public func getCurrentTimeAndDuration() -> (currentTime: CMTime, duration: CMTime)? {
+	func getCurrentTimeAndDuration() -> (currentTime: CMTime, duration: CMTime)? {
 		fatalError("getCurrentTimeAndDuration not implemented")
 	}
 }
 
-public class FakeNativePlayer: AVPlayerProtocol {
-	public var internalItemStatus: Observable<AVPlayerItemStatus?> {
+final class FakeNativePlayer: AVPlayerProtocol {
+	var internalItemStatus: Observable<AVPlayerItemStatus?> {
 		return Observable.just(nil)
 	}
-	public var rate: Float = 0.0
-	public func replaceCurrentItemWithPlayerItem(item: AVPlayerItemProtocol?) {
+	var rate: Float = 0.0
+	func replaceCurrentItemWithPlayerItem(item: AVPlayerItemProtocol?) {
 		
 	}
-	public func play() {
+	func play() {
 		
 	}
-	public func setPlayerRate(rate: Float) {
+	func setPlayerRate(rate: Float) {
 		
 	}
 }
 
-public class FakeStreamPlayerUtilities : StreamPlayerUtilitiesProtocol {
+struct FakeStreamPlayerUtilities : StreamPlayerUtilitiesProtocol {
 	init() {
 		
 	}
 	
-	public func createavUrlAsset(url: NSURL) -> AVURLAssetProtocol {
+	func createavUrlAsset(url: NSURL) -> AVURLAssetProtocol {
 		return StreamPlayerUtilities().createavUrlAsset(url)
 	}
 	
-	public func createavPlayerItem(url: NSURL) -> AVPlayerItemProtocol {
+	func createavPlayerItem(url: NSURL) -> AVPlayerItemProtocol {
 		return StreamPlayerUtilities().createavPlayerItem(url)
 	}
 	
-	public func createavPlayerItem(asset: AVURLAssetProtocol) -> AVPlayerItemProtocol {
+	func createavPlayerItem(asset: AVURLAssetProtocol) -> AVPlayerItemProtocol {
 		return StreamPlayerUtilities().createavPlayerItem(asset)
 	}
 	
-	public func createInternalPlayer(hostPlayer: RxPlayer, eventsCallback: (PlayerEvents) -> ()) -> InternalPlayerType {
+	func createInternalPlayer(hostPlayer: RxPlayer, eventsCallback: (PlayerEvents) -> ()) -> InternalPlayerType {
 		return FakeInternalPlayer(hostPlayer: hostPlayer, callback: eventsCallback)
 	}
 }
 
-class FakeNSUserDefaults: NSUserDefaultsType {
+final class FakeNSUserDefaults: NSUserDefaultsType {
 	var localCache: [String: AnyObject]
 	//["testResource": OAuthResourceBase(id: "testResource", authUrl: "https://test", clientId: nil, tokenId: nil)]
 	

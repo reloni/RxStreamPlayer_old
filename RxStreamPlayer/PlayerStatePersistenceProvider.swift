@@ -7,7 +7,7 @@ public protocol RxPlayerPersistenceProviderType {
 	func loadPlayerState(player: RxPlayer) throws
 }
 
-public class RealmRxPlayerPersistenceProvider {
+public  final class RealmRxPlayerPersistenceProvider {
 	public init() { }
 	
 	internal func getOrCreatePlayerState(realm: Realm) -> RealmPlayerState {

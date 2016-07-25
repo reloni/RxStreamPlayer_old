@@ -66,11 +66,12 @@ public enum ContentType: String {
 	}
 }
 
+protocol StreamTaskEventsType { }
+extension StreamTaskEvents : StreamTaskEventsType { }
 
-extension Observable where Element : ResultType {
+extension Observable where Element : StreamTaskEventsType {
 	internal func loadWithAsset(assetEvents assetLoaderEvents: Observable<AssetLoadingEvents>,
-	                                        targetAudioFormat: ContentType? = nil)
-		-> Observable<Result<Void>> {//Observable<(receivedResponse: NSHTTPURLResponseProtocol?, utiType: String?, resultRequestCollection: [Int: AVAssetResourceLoadingRequestProtocol])> {
+	                                        targetAudioFormat: ContentType? = nil) -> Observable<Void> {
 			
 			// local variables
 			var resourceLoadingRequests = [Int: AVAssetResourceLoadingRequestProtocol]()
@@ -132,10 +133,9 @@ extension Observable where Element : ResultType {
 				return Int64(respondingDataRequest.requestedLength) <= respondingDataRequest.currentOffset + responseLength - respondingDataRequest.requestedOffset
 			}
 			
-			let scheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility,
-			                                             internalSerialQueueName: "com.cloudmusicplayer.assetloader.serialscheduler.\(NSUUID().UUIDString)")
+			let scheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)
 			
-			return Observable<Result<Void>>.create { observer in
+			return Observable<Void>.create { observer in
 				let assetEvents = assetLoaderEvents.observeOn(scheduler).bindNext { e in
 					switch e {
 					case .didCancelLoading(let loadingRequest):
@@ -156,27 +156,21 @@ extension Observable where Element : ResultType {
 				}
 				
 				let streamEvents = self.observeOn(scheduler).catchError { error in
-					observer.onNext(Result.error(error))
-					observer.onCompleted()
+					observer.onError(error)
 					return Observable.empty()
 					}.bindNext { e in
-					if case Result.success(let box) = e as! Result<StreamTaskEvents> {
-						switch box.value {
-						case .Success(let provider):
+						switch e as! StreamTaskEvents {
+						case .success(let provider):
 							if let provider = provider {
 								cacheProvider = provider
 								processRequests(provider)
 							}
-						case .ReceiveResponse(let receivedResponse): response = receivedResponse
-						case .CacheData(let provider):
+						case .receiveResponse(let receivedResponse): response = receivedResponse
+						case .cacheData(let provider):
 							cacheProvider = provider
 							processRequests(provider)
 						default: break
 						}
-					} else if case Result.error(let error) = e as! Result<StreamTaskEvents> {
-						observer.onNext(Result.error(error))
-						observer.onCompleted()
-					}
 				}
 				
 				return AnonymousDisposable {

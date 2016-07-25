@@ -6,6 +6,7 @@ public enum StreamResourceType {
 	case LocalResource
 	case HttpResource
 	case HttpsResource
+	case Unknown
 }
 
 public protocol StreamResourceIdentifier {
@@ -22,14 +23,14 @@ public protocol StreamHttpResourceIdentifier {
 extension StreamResourceIdentifier {
 	public var streamResourceType: Observable<StreamResourceType> {
 		return streamResourceUrl.flatMapLatest { url -> Observable<StreamResourceType> in
-			if url.hasPrefix("https") {
-				return Observable.just(.HttpsResource)
-			} else if url.hasPrefix("http") {
-				return Observable.just(.HttpResource)
-			} else if NSFileManager.fileExistsAtPath(url) {
-				return Observable.just(.LocalResource)
-			} else {
-				return Observable.empty()
+			guard let nsUrl = NSURL(string: url) else {
+				return Observable.just(.Unknown)
+			}
+			
+			switch nsUrl.scheme {
+			case "http": return Observable.just(.HttpResource)
+			case "https": return Observable.just(.HttpsResource)
+			default: return NSFileManager.fileExistsAtPath(url) ? Observable.just(.LocalResource) : Observable.just(.Unknown)
 			}
 		}
 	}

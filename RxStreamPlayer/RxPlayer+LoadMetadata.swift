@@ -30,19 +30,19 @@ extension RxPlayer {
 		return AudioItemMetadata(resourceUid: resource.streamResourceUid, metadata: metadataArray)
 	}
 	
-	public func loadMetadata(resource: StreamResourceIdentifier) -> Observable<Result<MediaItemMetadataType?>> {
+	public func loadMetadata(resource: StreamResourceIdentifier) -> Observable<MediaItemMetadataType?> {
 		return loadMetadata(resource, downloadManager: downloadManager, utilities: streamPlayerUtilities)
 	}
 	
 	internal func loadMetadata(resource: StreamResourceIdentifier, downloadManager: DownloadManagerType, utilities: StreamPlayerUtilitiesProtocol)
-		-> Observable<Result<MediaItemMetadataType?>> {
+		-> Observable<MediaItemMetadataType?> {
 		return Observable.create { [weak self] observer in
-			guard let object = self else { observer.onNext(Result.success(Box(value: nil))); observer.onCompleted(); return NopDisposable.instance }
+			guard let object = self else { observer.onNext(nil); observer.onCompleted(); return NopDisposable.instance }
 			
 			// check metadata in media library
 			if let metadata = (try? object.mediaLibrary.getMetadataObjectByUid(resource)) ?? nil {
 				// if metadata exists, simply return it
-				observer.onNext(Result.success(Box(value: metadata)))
+				observer.onNext(metadata)
 				observer.onCompleted()
 				return NopDisposable.instance
 			}
@@ -55,7 +55,7 @@ extension RxPlayer {
 					object.mediaLibrary.saveMetadataSafe(metadata, updateExistedObjects: true)
 				}
 				
-				observer.onNext(Result.success(Box(value: metadata)))
+				observer.onNext(metadata)
 				observer.onCompleted()
 				return NopDisposable.instance
 			}
@@ -71,37 +71,32 @@ extension RxPlayer {
 			
 			// creating new observable in order to start downloading data and send it to AVAssetResourceLoader
 			// and suspend downloading when we reach download limit
-			let assetStreamDisposable = Observable<StreamTaskResult>.create { downloadObserver in
+			let assetStreamDisposable = Observable<StreamTaskEvents>.create { downloadObserver in
 				// disposable variable, that will used inside itself in order to suspend downloading
 				var downloadDisposable: Disposable?
 				
 				downloadDisposable = downloadObservable.catchError { error in
-					observer.onNext(Result.error(error))
-					observer.onCompleted()
+					observer.onError(error)
 					return Observable.empty()
-					}.observeOn(SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)).doOnNext { e in
-						if case Result.success(let box) = e {
-							if case StreamTaskEvents.CacheData(let prov) = box.value {
-								receivedDataLen = UInt(prov.currentDataLength)
-								// if we reach maximum amount of allowed data to download
-								if receivedDataLen >= object.matadataMaximumLoadLength {
-									// dispose download task
-									downloadDisposable?.dispose()
-								}
+					}.observeOn(SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility))
+					.doOnNext { e in
+						if case StreamTaskEvents.cacheData(let prov) = e {
+							receivedDataLen = UInt(prov.currentDataLength)
+							// if we reach maximum amount of allowed data to download
+							if receivedDataLen >= object.matadataMaximumLoadLength {
+								// dispose download task
+								downloadDisposable?.dispose()
 							}
-							
-							// send data to observer (loadWithAsset method will deliver data to AVAssetResourceLoader)
-							downloadObserver.onNext(e)
-						} else if case Result.error(let error) = e {
-							observer.onNext(Result.error(error))
-							observer.onCompleted()
 						}
-				}.subscribe()
+						
+						// send data to observer (loadWithAsset method will deliver data to AVAssetResourceLoader)
+						downloadObserver.onNext(e)
+					}.subscribe()
 				
 				return AnonymousDisposable {
 					downloadDisposable?.dispose()
 				}
-			}.loadWithAsset(assetEvents: assetObserver.loaderEvents, targetAudioFormat: resource.streamResourceContentType).subscribe()
+				}.loadWithAsset(assetEvents: assetObserver.loaderEvents, targetAudioFormat: resource.streamResourceContentType).subscribe()
 			
 			// load duration of asset async
 			// and when it's loaded, return metadata
@@ -120,7 +115,7 @@ extension RxPlayer {
 					NSLog("Metadata for \(resource.streamResourceUid) loaded. Data received: \(receivedDataLen)")
 				#endif
 				
-				observer.onNext(Result.success(Box(value: audioMetadata)))
+				observer.onNext(audioMetadata)
 				observer.onCompleted()
 			}
 			
@@ -130,34 +125,39 @@ extension RxPlayer {
 		}
 	}
 	
+	/*
 	public func loadMetadataForItemsInQueue() -> Observable<Result<MediaItemMetadataType>> {
 		return loadMetadataForItemsInQueue(downloadManager, utilities: streamPlayerUtilities, mediaLibrary: mediaLibrary)
 	}
 	
-	public func loadMetadataAndAddToMediaLibrary(items: [StreamResourceIdentifier]) -> Observable<Result<MediaItemMetadataType>> {
+	internal func loadMetadataForItemsInQueue(downloadManager: DownloadManagerType, utilities: StreamPlayerUtilitiesProtocol,
+			mediaLibrary: MediaLibraryType) -> Observable<Result<MediaItemMetadataType>> {
+		return loadMetadataAndAddToMediaLibrary(currentItems.map { $0.streamIdentifier })
+	}
+	*/
+	
+	public func loadMetadataAndAddToMediaLibrary(items: [StreamResourceIdentifier]) -> Observable<MediaItemMetadataType> {
 		return Observable.create { [weak self] observer in
 			guard let object = self else { observer.onCompleted(); return NopDisposable.instance }
 			
 			let serialScheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)
 			let loadDisposable = items.toObservable().observeOn(serialScheduler)
-				.flatMap { item -> Observable<Result<MediaItemMetadataType?>> in
+				.flatMap { item -> Observable<MediaItemMetadataType?> in
 					return object.loadMetadata(item)
-				}.doOnCompleted { observer.onCompleted() }.bindNext { result in
+				}.doOnCompleted { observer.onCompleted() }.doOnError { observer.onError($0) }.bindNext { result in
+					/*
 					if case Result.success(let box) = result, let meta = box.value {
 						observer.onNext(Result.success(Box(value: meta)))
 					} else if case Result.error(let error) = result {
 						observer.onNext(Result.error(error))
-					}
+					}*/
+					guard let result = result else { return }
+					observer.onNext(result)
 			}
 			
 			return AnonymousDisposable {
 				loadDisposable.dispose()
 			}
 		}
-	}
-	
-	internal func loadMetadataForItemsInQueue(downloadManager: DownloadManagerType, utilities: StreamPlayerUtilitiesProtocol,
-	                                          mediaLibrary: MediaLibraryType) -> Observable<Result<MediaItemMetadataType>> {
-		return loadMetadataAndAddToMediaLibrary(currentItems.map { $0.streamIdentifier })
 	}
 }

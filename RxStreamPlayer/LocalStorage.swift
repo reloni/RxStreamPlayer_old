@@ -43,7 +43,7 @@ public protocol LocalStorageType {
 	func clearStorage()
 }
 
-public class LocalNsUserDefaultsStorage {
+public final class LocalNsUserDefaultsStorage {
 	internal static let tempFileStorageId = "CMP_TempFileStorageDictionary"
 	internal static let permanentFileStorageId = "CMP_PermanentFileStorageDictionary"
 	

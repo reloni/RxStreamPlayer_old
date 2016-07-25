@@ -8,7 +8,7 @@ class AssetResourceLoaderTests: XCTestCase {
 	var request: FakeRequest!
 	var session: FakeSession!
 	var utilities: FakeHttpUtilities!
-	var httpClient: HttpClientType!
+	var httpClient: HttpClient!
 	var streamObserver: NSURLSessionDataEventsObserver!
 	var avAssetObserver: AVAssetResourceLoaderEventsObserver!
 	var cacheTask: StreamDataTaskType!
@@ -25,9 +25,15 @@ class AssetResourceLoaderTests: XCTestCase {
 		utilities.fakeSession = session
 		utilities.streamObserver = streamObserver
 		httpClient = HttpClient(httpUtilities: utilities)
-		cacheTask = utilities.createStreamDataTask(NSUUID().UUIDString, request: request,
-		                                           sessionConfiguration: NSURLSession.defaultConfig,
-		                                           cacheProvider: MemoryCacheProvider(uid: NSUUID().UUIDString))
+		
+		cacheTask = utilities.createStreamDataTask(NSUUID().UUIDString,
+		                               dataTask: session.dataTaskWithRequest(request),
+		                               httpClient: httpClient,
+		                               sessionEvents: httpClient.sessionObserver.sessionEvents,
+		                               cacheProvider: MemoryCacheProvider(uid: NSUUID().UUIDString))
+		//cacheTask = utilities.createStreamDataTask(NSUUID().UUIDString, request: request,
+		//                                           sessionConfiguration: NSURLSession.defaultConfig,
+		//                                           cacheProvider: MemoryCacheProvider(uid: NSUUID().UUIDString))
 		avAssetObserver = AVAssetResourceLoaderEventsObserver()
 	}
 	
