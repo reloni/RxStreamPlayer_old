@@ -153,12 +153,20 @@ public final class RxPlayer {
 	}
 	
 	internal init(repeatQueue: Bool, shuffleQueue: Bool, downloadManager: DownloadManagerType,
-	              streamPlayerUtilities: StreamPlayerUtilitiesProtocol, mediaLibrary: MediaLibraryType = RealmMediaLibrary()) {
+	              streamPlayerUtilities: StreamPlayerUtilitiesProtocol, mediaLibrary: MediaLibraryType) {
 		self.repeatQueue = repeatQueue
 		self.shuffleQueue = shuffleQueue
 		self.downloadManager = downloadManager
 		self.streamPlayerUtilities = streamPlayerUtilities
 		self.mediaLibrary = mediaLibrary
+	}
+	
+	internal convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, downloadManager: DownloadManagerType, streamPlayerUtilities: StreamPlayerUtilitiesProtocol) {
+		self.init(repeatQueue: repeatQueue,
+		          shuffleQueue: shuffleQueue,
+		          downloadManager: downloadManager,
+		          streamPlayerUtilities: streamPlayerUtilities,
+		          mediaLibrary: RealmMediaLibrary())
 	}
 	
 	public convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, saveData: Bool = false) {
@@ -171,7 +179,12 @@ public final class RxPlayer {
 	}
 	
 	public convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, downloadManager: DownloadManagerType) {
-		self.init(repeatQueue: repeatQueue, shuffleQueue: shuffleQueue, downloadManager: downloadManager, streamPlayerUtilities: StreamPlayerUtilities(),
+		self.init(repeatQueue: repeatQueue,
+		          shuffleQueue: shuffleQueue,
+		          downloadManager: downloadManager,
+		          streamPlayerUtilities: StreamPlayerUtilities(),
 		          mediaLibrary: RealmMediaLibrary())
 	}
+	
+	
 }

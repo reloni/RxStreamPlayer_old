@@ -38,9 +38,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 		
 		XCTAssertFalse(player.playing, "Playing property should be false")
 		
-		//player.playerEvents.dispatchPlayerControlEvents().subscribe().addDisposableTo(bag)
-		//player.playerEvents.streamContent().subscribe().addDisposableTo(bag)
-		
 		let preparingExpectation = expectationWithDescription("Should rise PreparingToPlay event")
 		let playStartedExpectation = expectationWithDescription("Should invoke Start on internal player")
 		let currentItemChangeExpectation = expectationWithDescription("Should change current item")
@@ -72,9 +69,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 		//let player = RxPlayer(repeatQueue: false, internalPlayer: FakeInternalPlayer(), downloadManager: downloadManager)
 		//let player = RxPlayer(repeatQueue: false, internalPlayer: FakeInternalPlayer())
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
-		
-		//player.playerEvents.dispatchPlayerControlEvents().subscribe().addDisposableTo(bag)
-		//player.playerEvents.streamContent().subscribe().addDisposableTo(bag)
 		
 		let pausingExpectation = expectationWithDescription("Should rise Pausing event")
 		let pausedExpectation = expectationWithDescription("Should invoke Pause on internal player")
@@ -272,7 +266,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 		}.addDisposableTo(bag)
 		
 		// send notification about finishing current item playing
-		//fakeInternalPlayer.publishSubject.onNext(.FinishPlayingCurrentItem(player))
 		(player.internalPlayer as! FakeInternalPlayer).finishPlayingCurrentItem()
 		
 		waitForExpectationsWithTimeout(1, handler: nil)

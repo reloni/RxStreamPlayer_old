@@ -20,20 +20,18 @@ class AssetResourceLoaderTests: XCTestCase {
 		bag = DisposeBag()
 		streamObserver = NSURLSessionDataEventsObserver()
 		request = FakeRequest(url: NSURL(string: "https://test.com"))
-		session = FakeSession(fakeTask: FakeDataTask(completion: nil))
+		let fakeTask = FakeDataTask(completion: nil)
+		fakeTask.originalRequest = request
+		session = FakeSession(fakeTask: fakeTask)
 		utilities = FakeHttpUtilities()
 		utilities.fakeSession = session
 		utilities.streamObserver = streamObserver
-		httpClient = HttpClient(httpUtilities: utilities)
-		
+		httpClient = HttpClient(httpUtilities: utilities)		
 		cacheTask = utilities.createStreamDataTask(NSUUID().UUIDString,
 		                               dataTask: session.dataTaskWithRequest(request),
 		                               httpClient: httpClient,
 		                               sessionEvents: httpClient.sessionObserver.sessionEvents,
 		                               cacheProvider: MemoryCacheProvider(uid: NSUUID().UUIDString))
-		//cacheTask = utilities.createStreamDataTask(NSUUID().UUIDString, request: request,
-		//                                           sessionConfiguration: NSURLSession.defaultConfig,
-		//                                           cacheProvider: MemoryCacheProvider(uid: NSUUID().UUIDString))
 		avAssetObserver = AVAssetResourceLoaderEventsObserver()
 	}
 	

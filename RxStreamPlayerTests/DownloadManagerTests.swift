@@ -4,6 +4,12 @@ import RxTests
 @testable import RxStreamPlayer
 @testable import RxHttpClient
 
+extension HttpClient {
+	convenience init(httpUtilities: HttpUtilitiesType) {
+		self.init(sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration(), httpUtilities: httpUtilities)
+	}
+}
+
 class DownloadManagerTests: XCTestCase {
 	let bag = DisposeBag()
 	let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
@@ -398,13 +404,13 @@ class DownloadManagerTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
+		let httpClient = HttpClient(httpUtilities: httpUtilities)
 		
 		let manager = DownloadManager(saveData: false,
 		                              fileStorage: LocalNsUserDefaultsStorage(),
-		                              httpClient: HttpClient(httpUtilities: httpUtilities),
+		                              httpClient: httpClient,
 		                              simultaneousTasksCount: 1,
 		                              runningTaskCheckTimeout: 1)
-		let httpClient = HttpClient(httpUtilities: httpUtilities)
 		
 		// create task, start it and add to pending tasks
 		let runningTask = httpUtilities.createStreamDataTask("http://test.com",
