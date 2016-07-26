@@ -38,6 +38,6 @@ class StreamResourceIdentifierTests: XCTestCase {
 	
 	func testNotParseIncorrectUrl() {
 		let file = "/Documents/File.txt"
-		XCTAssertNil(try! file.streamResourceType.toBlocking().first())
+		XCTAssertEqual(StreamResourceType.Unknown, try! file.streamResourceType.toBlocking().first())
 	}
 }

@@ -45,18 +45,17 @@ class LocalFileStreamDataTaskTests: XCTestCase {
 		var successExpectation: XCTestExpectation? = expectationWithDescription("Should successifully complete")
 		
 		task?.taskProgress.bindNext { result in
-			guard case Result.success(let box) = result else { return }
-			if case StreamTaskEvents.ReceiveResponse(let response) = box.value {
+			if case StreamTaskEvents.receiveResponse(let response) = result {
 				XCTAssertEqual(response.expectedContentLength, Int64(storedData.length))
 				XCTAssertEqual(response.MIMEType, "audio/mpeg")
 				receiveResponceExpectation?.fulfill()
 				receiveResponceExpectation = nil
-			} else if case StreamTaskEvents.CacheData(let provider) = box.value {
+			} else if case StreamTaskEvents.cacheData(let provider) = result {
 				XCTAssertTrue(provider.getCurrentData().isEqualToData(storedData))
 				XCTAssertEqual(provider.contentMimeType, "audio/mpeg")
 				cacheDataExpectation?.fulfill()
 				cacheDataExpectation = nil
-			} else if case StreamTaskEvents.Success = box.value {
+			} else if case StreamTaskEvents.success = result {
 				successExpectation?.fulfill()
 				successExpectation = nil
 			}
@@ -82,12 +81,11 @@ class LocalFileStreamDataTaskTests: XCTestCase {
 		let successExpectation = expectationWithDescription("Should successifully complete")
 		
 		task?.taskProgress.bindNext { e in
-			guard case Result.success(let box) = e else { return }
-			if case StreamTaskEvents.ReceiveResponse = box.value {
+			if case StreamTaskEvents.receiveResponse = e {
 				XCTFail("Should not rise ReceiveResponse this event")
-			} else if case StreamTaskEvents.CacheData = box.value {
+			} else if case StreamTaskEvents.cacheData = e {
 				XCTFail("Should not rise CacheData this event")
-			} else if case StreamTaskEvents.Success(let provider) = box.value {
+			} else if case StreamTaskEvents.success(let provider) = e {
 				XCTAssertNil(provider, "Should not send any provider")
 				successExpectation.fulfill()
 			}

@@ -77,7 +77,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let _ = try? NSFileManager.defaultManager().copyItemAtURL(metadataFile, toURL: copiedFile)
 		storage.tempStorageDictionary["https://testitem.com"] = copiedFile.lastPathComponent
 		
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: FakeHttpUtilities())
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: FakeHttpUtilities()))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -86,8 +86,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let metadataLoadExpectation = expectationWithDescription("Should load metadta from local file")
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
-			guard case Result.success(let box) = result else { return }
-			let metadata = box.value
+			let metadata = result
 			XCTAssertEqual(metadata?.album, "Of Her")
 			XCTAssertEqual(metadata?.artist, "Yusuke Tsutsumi")
 			XCTAssertEqual(metadata?.duration?.asTimeString, "04: 27")
@@ -110,7 +109,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -131,14 +130,14 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 			}
 			}.addDisposableTo(bag)
 		
-		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
-			guard case Result.error(let error) = result else { return }
+		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).doOnError { error in
+			//guard case Result.error(let error) = result else { return }
 			//guard case Result.error(let errorType) = result else { return }
 			//let error = errorType as NSError
 			if (error as NSError).code == 17 {
 				metadataLoadExpectation.fulfill()
 			}
-			}.addDisposableTo(bag)
+			}.subscribe().addDisposableTo(bag)
 		
 		waitForExpectationsWithTimeout(1, handler: nil)
 	}
@@ -151,7 +150,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -182,8 +181,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 			}.addDisposableTo(bag)
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
-			guard case Result.success(let box) = result else { return }
-			let metadata = box.value
+			let metadata = result
 			XCTAssertEqual(metadata?.album, "Of Her")
 			XCTAssertEqual(metadata?.artist, "Yusuke Tsutsumi")
 			XCTAssertEqual(metadata?.duration?.asTimeString, "04: 27")
@@ -216,7 +214,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -244,8 +242,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 			}.addDisposableTo(bag)
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
-			guard case Result.success(let box) = result else { return }
-			let metadata = box.value
+			let metadata = result
 			XCTAssertEqual(metadata?.album, "Red Dust & Spanish Lace")
 			XCTAssertEqual(metadata?.artist, "Acoustic Alchemy")
 			XCTAssertEqual(metadata?.duration?.asTimeString, "03: 08")
@@ -270,7 +267,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -316,7 +313,6 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 							break
 						}
 					}
-					
 				}
 			} else if case FakeDataTaskMethods.cancel = e {
 				downloadTaskCancelationExpectation.fulfill()
@@ -325,8 +321,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 			}.addDisposableTo(bag)
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
-			guard case Result.success(let box) = result else { return }
-			let metadata = box.value
+			let metadata = result
 			XCTAssertEqual(metadata?.album, "Red Dust & Spanish Lace")
 			XCTAssertEqual(metadata?.artist, "Acoustic Alchemy")
 			XCTAssertEqual(metadata?.duration?.asTimeString, "03: 08")
@@ -351,7 +346,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		httpUtilities.streamObserver = streamObserver
 		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
 		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: httpUtilities)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		let item = player.addLast("https://testitem.com")
 		
@@ -400,8 +395,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 			}.addDisposableTo(bag)
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
-			guard case Result.success(let box) = result else { return }
-			let metadata = box.value
+			let metadata = result
 			XCTAssertEqual(metadata?.album, "Red Dust & Spanish Lace")
 			XCTAssertEqual(metadata?.artist, "Acoustic Alchemy")
 			XCTAssertEqual(metadata?.duration?.asTimeString, "03: 08")
@@ -426,7 +420,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		
 	func testReturnErrorForItemWithUnknownScheme() {
 		let storage = LocalNsUserDefaultsStorage()
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpUtilities: HttpUtilities())
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: HttpUtilities()))
 
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -434,12 +428,12 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		
 		let metadataLoadExpectation = expectationWithDescription("Should not load metadata for incorrect scheme")
 		
-		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
-			guard case Result.error(let error) = result else { return }
-			guard case DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(_, let uid) = error else { XCTFail("Should return correct error"); return }
+		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).doOnError { error in
+			guard case DownloadManagerErrors.unsupportedUrlScheme(let url, let uid) = error else { XCTFail("Should return correct error"); return }
 			XCTAssertEqual("wrong://testitem.com", uid)
+			XCTAssertEqual("wrong://testitem.com", url)
 			metadataLoadExpectation.fulfill()
-		}.addDisposableTo(bag)
+		}.subscribe().addDisposableTo(bag)
 		
 		waitForExpectationsWithTimeout(1, handler: nil)
 	}
