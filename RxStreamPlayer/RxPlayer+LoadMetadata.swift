@@ -145,12 +145,6 @@ extension RxPlayer {
 				.flatMap { item -> Observable<MediaItemMetadataType?> in
 					return object.loadMetadata(item)
 				}.doOnCompleted { observer.onCompleted() }.doOnError { observer.onError($0) }.bindNext { result in
-					/*
-					if case Result.success(let box) = result, let meta = box.value {
-						observer.onNext(Result.success(Box(value: meta)))
-					} else if case Result.error(let error) = result {
-						observer.onNext(Result.error(error))
-					}*/
 					guard let result = result else { return }
 					observer.onNext(result)
 			}

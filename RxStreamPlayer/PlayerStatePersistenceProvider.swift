@@ -62,42 +62,17 @@ extension RealmRxPlayerPersistenceProvider : RxPlayerPersistenceProviderType {
 	}
 }
 
-public class RealmPlayerState: Object {
-	public internal(set) dynamic var shuffle = false
-	public internal(set) dynamic var repeatQueue = false
-	public let queueItems = List<RealmPlayerQueueItem>()
-	public dynamic var currentItem: RealmPlayerQueueItem?
-	
-	required public init() {
-		super.init()
-	}
-	
-	public required init(realm: RLMRealm, schema: RLMObjectSchema) {
-		super.init(realm: realm, schema: schema)
-	}
-	
-	public required init(value: AnyObject, schema: RLMSchema) {
-		super.init(value: value, schema: schema)
-	}
-	
+final class RealmPlayerState: Object {
+	internal(set) dynamic var shuffle = false
+	internal(set) dynamic var repeatQueue = false
+	let queueItems = List<RealmPlayerQueueItem>()
+	dynamic var currentItem: RealmPlayerQueueItem?
 }
 
-public class RealmPlayerQueueItem: Object {
-	public dynamic var uid: String = ""
-	
-	required public init() {
-		super.init()
-	}
-	
-	public required init(realm: RLMRealm, schema: RLMObjectSchema) {
-		super.init(realm: realm, schema: schema)
-	}
-	
-	public required init(value: AnyObject, schema: RLMSchema) {
-		super.init(value: value, schema: schema)
-	}
-	
-	override public static func primaryKey() -> String? {
+final class RealmPlayerQueueItem: Object {
+	dynamic var uid: String = ""
+		
+	override static func primaryKey() -> String? {
 		return "uid"
 	}
 }

@@ -140,8 +140,7 @@ extension LocalNsUserDefaultsStorage : LocalStorageType {
 	}
 	
 	internal func saveTo(destination: NSURL, provider: CacheProviderType) -> NSURL? {
-		return provider.saveData(destination,
-		                                   fileExtension: ContentTypeDefinition.getFileExtensionFromMime(provider.contentMimeType ?? ""))
+		return provider.saveData(destination, fileExtension: MimeTypeConverter.getFileExtensionFromMime(provider.contentMimeType ?? ""))
 	}
 	
 	public func createCacheProvider(uid: String, targetMimeType: String?) -> CacheProviderType {

@@ -14,43 +14,6 @@ public struct ContentTypeDefinition {
 		self.UTI = uti
 		self.fileExtension = fileExtension
 	}
-	
-	public static func getUtiFromMime(mimeType: String) -> String? {
-		guard let contentType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, mimeType, nil) else { return nil }
-		
-		return contentType.takeRetainedValue() as String
-	}
-	
-	public static func getFileExtensionFromUti(utiType: String) -> String? {
-		guard let ext = UTTypeCopyPreferredTagWithClass(utiType, kUTTagClassFilenameExtension) else { return nil }
-		
-		return ext.takeRetainedValue() as String
-	}
-	
-	public static func getUtiTypeFromFileExtension(ext: String) -> String? {
-		guard let contentType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, ext, nil) else { return nil }
-		return contentType.takeRetainedValue() as String
-	}
-	
-	public static func getFileExtensionFromMime(mimeType: String) -> String? {
-		guard let uti = getUtiFromMime(mimeType) else { return nil }
-		return getFileExtensionFromUti(uti)
-	}
-	
-	public static func getTypeDefinitionFromMime(mimeType: String) -> ContentTypeDefinition? {
-		guard let uti = getUtiFromMime(mimeType), ext = getFileExtensionFromUti(uti) else { return nil }
-		return ContentTypeDefinition(mime: mimeType, uti: uti, fileExtension: ext)
-	}
-		
-	public static func getMimeTypeFromFileExtension(ext: String) -> String? {
-		guard let uti = getUtiTypeFromFileExtension(ext), mime = UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType) else { return nil }
-		return mime.takeRetainedValue() as String
-	}
-	
-	public static func getMimeTypeFromUti(uti: String) -> String? {
-		guard let mime = UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType) else { return nil }
-		return mime.takeRetainedValue() as String
-	}
 }
 
 public enum ContentType: String {
@@ -84,7 +47,7 @@ extension Observable where Element : StreamTaskEventsType {
 			func getUtiType() -> String? {
 				return targetAudioFormat?.definition.UTI ?? {
 					guard let response = response else { return nil }
-					return ContentTypeDefinition.getUtiFromMime(response.getMimeType())
+					return MimeTypeConverter.getUtiFromMime(response.getMimeType())
 					}()
 			}
 			

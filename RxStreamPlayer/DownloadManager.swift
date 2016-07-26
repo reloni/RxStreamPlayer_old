@@ -156,20 +156,17 @@ public final class DownloadManager {
 						observer.onNext(task)
 						return
 					} else {
-						//observer.onNext(nil)
 						observer.onError(DownloadManagerErrors.fileNotExists(url: resourceUrl, uid: identifier.streamResourceUid))
 						return
 					}
 				}
 				
 				guard resourceType == .HttpResource || resourceType == .HttpsResource else {
-					//observer.onNext(nil); return
 					observer.onError(DownloadManagerErrors.unsupportedUrlScheme(url: resourceUrl, uid: identifier.streamResourceUid))
 					return
 				}
 				
 				guard let url = NSURL(baseUrl: resourceUrl, parameters: nil) else {
-					//observer.onNext(nil)
 					observer.onError(DownloadManagerErrors.unsupportedUrl(url: resourceUrl, uid: identifier.streamResourceUid))
 					return
 				}
@@ -179,11 +176,6 @@ public final class DownloadManager {
 				let task = object.httpClient.createStreamDataTask(identifier.streamResourceUid,
 					request: urlRequest,
 					cacheProvider: object.fileStorage.createCacheProvider(identifier.streamResourceUid,	targetMimeType: identifier.streamResourceContentType?.definition.MIME))
-				/*
-				let task = object.fileStorage.createStreamDataTask(identifier.streamResourceUid, request: urlRequest,
-					sessionConfiguration: NSURLSession.defaultConfig,
-					cacheProvider: object.fileStorage.createCacheProvider(identifier.streamResourceUid,
-						targetMimeType: identifier.streamResourceContentType?.definition.MIME))*/
 				
 				object.pendingTasks[identifier.streamResourceUid] = PendingTask(task: task, priority: priority)
 				observer.onNext(task)

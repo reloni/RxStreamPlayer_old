@@ -36,7 +36,7 @@ extension LocalFileStreamDataTask : StreamDataTaskType {
 			
 			object.resumed = true
 			let response = LocalFileResponse(expectedContentLength: Int64(data.length),
-			                                 mimeType: ContentTypeDefinition.getMimeTypeFromFileExtension(object.filePath.pathExtension!))
+			                                 mimeType: MimeTypeConverter.getMimeTypeFromFileExtension(object.filePath.pathExtension!))
 			
 			object.subject.onNext(StreamTaskEvents.receiveResponse(response))
 			

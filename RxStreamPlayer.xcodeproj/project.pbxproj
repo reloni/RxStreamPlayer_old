@@ -110,7 +110,6 @@
 		6E9A3A821D2BF49200EC581E /* RxPlayer+Queue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "RxPlayer+Queue.swift"; sourceTree = "<group>"; };
 		6E9A3A831D2BF49200EC581E /* RxPlayerQueueItem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RxPlayerQueueItem.swift; sourceTree = "<group>"; };
 		6E9A3A841D2BF49200EC581E /* SPExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SPExtensions.swift; sourceTree = "<group>"; };
-		6E9A3A861D2BF49200EC581E /* StreamDataTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StreamDataTask.swift; sourceTree = "<group>"; };
 		6E9A3A871D2BF49200EC581E /* StreamPlayerUtilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StreamPlayerUtilities.swift; sourceTree = "<group>"; };
 		6E9A3A881D2BF49200EC581E /* StreamResourceIdentifier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StreamResourceIdentifier.swift; sourceTree = "<group>"; };
 		6E9A3A891D2BF49200EC581E /* StreamResourceLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StreamResourceLoader.swift; sourceTree = "<group>"; };
@@ -191,7 +190,6 @@
 				6E9A3A821D2BF49200EC581E /* RxPlayer+Queue.swift */,
 				6E9A3A831D2BF49200EC581E /* RxPlayerQueueItem.swift */,
 				6E9A3A841D2BF49200EC581E /* SPExtensions.swift */,
-				6E9A3A861D2BF49200EC581E /* StreamDataTask.swift */,
 				6E9A3A871D2BF49200EC581E /* StreamPlayerUtilities.swift */,
 				6E9A3A881D2BF49200EC581E /* StreamResourceIdentifier.swift */,
 				6E9A3A891D2BF49200EC581E /* StreamResourceLoader.swift */,

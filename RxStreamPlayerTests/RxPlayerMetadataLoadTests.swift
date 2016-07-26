@@ -313,7 +313,6 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 							break
 						}
 					}
-					
 				}
 			} else if case FakeDataTaskMethods.cancel = e {
 				downloadTaskCancelationExpectation.fulfill()
