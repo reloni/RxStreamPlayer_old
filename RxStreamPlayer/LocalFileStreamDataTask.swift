@@ -35,12 +35,13 @@ extension LocalFileStreamDataTask : StreamDataTaskType {
 			}
 			
 			object.resumed = true
-			let response = LocalFileResponse(expectedContentLength: Int64(data.length),
-			                                 mimeType: MimeTypeConverter.getMimeTypeFromFileExtension(object.filePath.pathExtension!))
+			let response = NSURLResponse(URL: object.filePath,
+			                             MIMEType: MimeTypeConverter.getMimeTypeFromFileExtension(object.filePath.pathExtension ?? "dat"),
+			                             expectedContentLength: data.length, textEncodingName: nil)
 			
 			object.subject.onNext(StreamTaskEvents.receiveResponse(response))
 			
-			cacheProvider.setContentMimeTypeIfEmpty(response.getMimeType())
+			cacheProvider.setContentMimeTypeIfEmpty(response.MIMEType ?? "")
 			cacheProvider.appendData(data)
 			
 			object.subject.onNext(StreamTaskEvents.cacheData(cacheProvider))
@@ -59,14 +60,3 @@ extension LocalFileStreamDataTask : StreamDataTaskType {
 		resumed = false
 	}
 }
-
-struct LocalFileResponse {
-	var expectedContentLength: Int64
-	var MIMEType: String?
-	init(expectedContentLength: Int64, mimeType: String? = nil) {
-		self.expectedContentLength = expectedContentLength
-		self.MIMEType = mimeType
-	}
-}
-
-extension LocalFileResponse : NSHTTPURLResponseType { }

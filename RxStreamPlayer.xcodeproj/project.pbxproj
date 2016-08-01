@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6E166B9D1D4FCDBE00445554 /* RealmRxPlayerPersistenceProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF91D2D44A200775D9F /* RealmRxPlayerPersistenceProviderTests.swift */; };
+		6E166B9E1D4FCDD000445554 /* RealmMediaLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF81D2D44A200775D9F /* RealmMediaLibraryTests.swift */; };
+		6E166B9F1D4FCDDA00445554 /* NSFileManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF71D2D44A200775D9F /* NSFileManagerTests.swift */; };
+		6E166BA01D4FCDE300445554 /* LocalNsUserDefaultsStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF61D2D44A200775D9F /* LocalNsUserDefaultsStorage.swift */; };
+		6E166BA11D4FCDEA00445554 /* LocalFileStreamDataTaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF51D2D44A200775D9F /* LocalFileStreamDataTaskTests.swift */; };
+		6E166BA31D4FCEE300445554 /* AssetResourceLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF21D2D44A200775D9F /* AssetResourceLoaderTests.swift */; };
+		6E166BA41D4FD7FE00445554 /* DownloadManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF41D2D44A200775D9F /* DownloadManagerTests.swift */; };
 		6E38596A1D351B3500631969 /* MetadataTest2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 6E3859691D351B3500631969 /* MetadataTest2.mp3 */; };
 		6E5B3CD81D2D089500775D9F /* NSURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CD71D2D089500775D9F /* NSURL.swift */; };
 		6E5B3CDA1D2D08F900775D9F /* NSFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CD91D2D08F900775D9F /* NSFileManager.swift */; };
@@ -16,8 +23,10 @@
 		6E5B3CE21D2D0F6200775D9F /* NSMutableOrderedSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CE11D2D0F6200775D9F /* NSMutableOrderedSet.swift */; };
 		6E5B3CE41D2D16E800775D9F /* Dictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CE31D2D16E800775D9F /* Dictionary.swift */; };
 		6E5B3D0B1D2D450000775D9F /* Fake.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3D0A1D2D450000775D9F /* Fake.swift */; };
-		6E5B3D141D2D498200775D9F /* AssetResourceLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF21D2D44A200775D9F /* AssetResourceLoaderTests.swift */; };
-		6E5B3D161D2D4B4600775D9F /* DownloadManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF41D2D44A200775D9F /* DownloadManagerTests.swift */; };
+		6E736EC31D4FC58700D12752 /* StreamResourceIdentifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFD1D2D44A200775D9F /* StreamResourceIdentifierTests.swift */; };
+		6E736EC41D4FC60A00D12752 /* RxPlayerQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFC1D2D44A200775D9F /* RxPlayerQueueTests.swift */; };
+		6E736EC51D4FC6C800D12752 /* RxPlayerPlayControlsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFB1D2D44A200775D9F /* RxPlayerPlayControlsTests.swift */; };
+		6E736EC61D4FC70600D12752 /* RxPlayerMetadataLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFA1D2D44A200775D9F /* RxPlayerMetadataLoadTests.swift */; };
 		6E9A3A8A1D2BF49200EC581E /* AudioItemMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A741D2BF49200EC581E /* AudioItemMetadata.swift */; };
 		6E9A3A8B1D2BF49200EC581E /* AVAssetResourceLoaderEventsObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A751D2BF49200EC581E /* AVAssetResourceLoaderEventsObserver.swift */; };
 		6E9A3A8C1D2BF49200EC581E /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9A3A761D2BF49200EC581E /* DownloadManager.swift */; };
@@ -43,17 +52,8 @@
 		6E9A3AA91D2BF5EE00EC581E /* RxHttpClient.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AA81D2BF5EE00EC581E /* RxHttpClient.framework */; };
 		6E9A3AAB1D2BFD0900EC581E /* RealmSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AAA1D2BFD0900EC581E /* RealmSwift.framework */; };
 		6E9A3AAD1D2BFD3800EC581E /* Realm.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E9A3AAC1D2BFD3800EC581E /* Realm.framework */; };
-		6ECD09061D2E56E10087180B /* LocalFileStreamDataTaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF51D2D44A200775D9F /* LocalFileStreamDataTaskTests.swift */; };
-		6ECD09071D2E573D0087180B /* LocalNsUserDefaultsStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF61D2D44A200775D9F /* LocalNsUserDefaultsStorage.swift */; };
 		6ECD09091D2E5AD00087180B /* Excensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ECD09081D2E5AD00087180B /* Excensions.swift */; };
-		6ECD090A1D2E5E0F0087180B /* NSFileManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF71D2D44A200775D9F /* NSFileManagerTests.swift */; };
-		6ECD090B1D2E68820087180B /* RealmMediaLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF81D2D44A200775D9F /* RealmMediaLibraryTests.swift */; };
-		6ECD090C1D2E7A700087180B /* RealmRxPlayerPersistenceProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CF91D2D44A200775D9F /* RealmRxPlayerPersistenceProviderTests.swift */; };
-		6ECD090D1D2E7A9E0087180B /* RxPlayerMetadataLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFA1D2D44A200775D9F /* RxPlayerMetadataLoadTests.swift */; };
 		6ECD09101D2E7C2D0087180B /* MetadataTest.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 6ECD090F1D2E7C2D0087180B /* MetadataTest.mp3 */; };
-		6ECD09121D2E87660087180B /* RxPlayerPlayControlsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFB1D2D44A200775D9F /* RxPlayerPlayControlsTests.swift */; };
-		6ECD09131D2E8C4D0087180B /* RxPlayerQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFC1D2D44A200775D9F /* RxPlayerQueueTests.swift */; };
-		6ECD09141D2E8CA40087180B /* StreamResourceIdentifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B3CFD1D2D44A200775D9F /* StreamResourceIdentifierTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -430,19 +430,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6ECD090C1D2E7A700087180B /* RealmRxPlayerPersistenceProviderTests.swift in Sources */,
-				6ECD090B1D2E68820087180B /* RealmMediaLibraryTests.swift in Sources */,
-				6ECD09061D2E56E10087180B /* LocalFileStreamDataTaskTests.swift in Sources */,
-				6ECD090A1D2E5E0F0087180B /* NSFileManagerTests.swift in Sources */,
-				6E5B3D161D2D4B4600775D9F /* DownloadManagerTests.swift in Sources */,
-				6ECD09121D2E87660087180B /* RxPlayerPlayControlsTests.swift in Sources */,
-				6ECD09131D2E8C4D0087180B /* RxPlayerQueueTests.swift in Sources */,
+				6E166B9E1D4FCDD000445554 /* RealmMediaLibraryTests.swift in Sources */,
+				6E736EC51D4FC6C800D12752 /* RxPlayerPlayControlsTests.swift in Sources */,
 				6ECD09091D2E5AD00087180B /* Excensions.swift in Sources */,
+				6E166BA31D4FCEE300445554 /* AssetResourceLoaderTests.swift in Sources */,
+				6E736EC31D4FC58700D12752 /* StreamResourceIdentifierTests.swift in Sources */,
+				6E166BA01D4FCDE300445554 /* LocalNsUserDefaultsStorage.swift in Sources */,
+				6E166B9D1D4FCDBE00445554 /* RealmRxPlayerPersistenceProviderTests.swift in Sources */,
+				6E736EC41D4FC60A00D12752 /* RxPlayerQueueTests.swift in Sources */,
 				6E5B3D0B1D2D450000775D9F /* Fake.swift in Sources */,
-				6ECD090D1D2E7A9E0087180B /* RxPlayerMetadataLoadTests.swift in Sources */,
-				6ECD09141D2E8CA40087180B /* StreamResourceIdentifierTests.swift in Sources */,
-				6E5B3D141D2D498200775D9F /* AssetResourceLoaderTests.swift in Sources */,
-				6ECD09071D2E573D0087180B /* LocalNsUserDefaultsStorage.swift in Sources */,
+				6E166BA11D4FCDEA00445554 /* LocalFileStreamDataTaskTests.swift in Sources */,
+				6E166BA41D4FD7FE00445554 /* DownloadManagerTests.swift in Sources */,
+				6E736EC61D4FC70600D12752 /* RxPlayerMetadataLoadTests.swift in Sources */,
+				6E166B9F1D4FCDDA00445554 /* NSFileManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,4 +1,5 @@
 import XCTest
+import RxBlocking
 @testable import RxStreamPlayer
 
 class StreamResourceIdentifierTests: XCTestCase {

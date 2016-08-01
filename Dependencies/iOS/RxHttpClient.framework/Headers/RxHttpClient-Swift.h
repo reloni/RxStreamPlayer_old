@@ -99,32 +99,8 @@ typedef int swift_int4  __attribute__((__ext_vector_type__(4)));
 #pragma clang diagnostic ignored "-Wproperty-attribute-mismatch"
 #pragma clang diagnostic ignored "-Wduplicate-method-arg"
 
-@interface NSHTTPURLResponse (SWIFT_EXTENSION(RxHttpClient))
-@end
-
-
-@interface NSMutableURLRequest (SWIFT_EXTENSION(RxHttpClient))
-- (void)setHttpMethod:(NSString * _Nonnull)method;
-@end
-
-
 @interface NSURL (SWIFT_EXTENSION(RxHttpClient))
 - (nullable instancetype)initWithBaseUrl:(NSString * _Nonnull)baseUrl parameters:(NSDictionary<NSString *, NSString *> * _Nullable)parameters;
-- (BOOL)isEqualsToUrl:(NSURL * _Nonnull)url;
-@end
-
-
-@interface NSURLRequest (SWIFT_EXTENSION(RxHttpClient))
-@end
-
-
-@interface NSURLResponse (SWIFT_EXTENSION(RxHttpClient))
-@end
-
-@class NSURLSessionConfiguration;
-
-@interface NSURLSession (SWIFT_EXTENSION(RxHttpClient))
-+ (NSURLSessionConfiguration * _Nonnull)defaultConfig;
 @end
 
 

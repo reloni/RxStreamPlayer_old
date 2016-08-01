@@ -5,11 +5,9 @@ import RxSwift
 
 class AssetResourceLoaderTests: XCTestCase {
 	var bag: DisposeBag!
-	var request: FakeRequest!
+	var request: NSURLRequest!
 	var session: FakeSession!
-	var utilities: FakeHttpUtilities!
 	var httpClient: HttpClient!
-	var streamObserver: NSURLSessionDataEventsObserver!
 	var avAssetObserver: AVAssetResourceLoaderEventsObserver!
 	var cacheTask: StreamDataTaskType!
 	
@@ -18,20 +16,18 @@ class AssetResourceLoaderTests: XCTestCase {
 		// Put setup code here. This method is called before the invocation of each test method in the class.
 
 		bag = DisposeBag()
-		streamObserver = NSURLSessionDataEventsObserver()
-		request = FakeRequest(url: NSURL(string: "https://test.com"))
+		//request = FakeRequest(url: NSURL(string: "https://test.com"))
+		request = NSURLRequest(URL: NSURL(string: "https://test.com")!)
 		let fakeTask = FakeDataTask(completion: nil)
 		fakeTask.originalRequest = request
 		session = FakeSession(fakeTask: fakeTask)
-		utilities = FakeHttpUtilities()
-		utilities.fakeSession = session
-		utilities.streamObserver = streamObserver
-		httpClient = HttpClient(httpUtilities: utilities)		
-		cacheTask = utilities.createStreamDataTask(NSUUID().UUIDString,
-		                               dataTask: session.dataTaskWithRequest(request),
-		                               httpClient: httpClient,
-		                               sessionEvents: httpClient.sessionObserver.sessionEvents,
-		                               cacheProvider: MemoryCacheProvider(uid: NSUUID().UUIDString))
+		httpClient = HttpClient(session: session)
+		cacheTask = StreamDataTask(taskUid: NSUUID().UUIDString,
+		                           dataTask: session.dataTaskWithRequest(request),
+		                           httpClient: httpClient,
+		                           sessionEvents: httpClient.sessionObserver.sessionEvents,
+		                           cacheProvider: MemoryCacheProvider(uid: NSUUID().UUIDString))
+
 		avAssetObserver = AVAssetResourceLoaderEventsObserver()
 	}
 	
@@ -41,16 +37,15 @@ class AssetResourceLoaderTests: XCTestCase {
 		bag = nil
 		request = nil
 		session = nil
-		utilities.streamObserver = nil
-		utilities = nil
-		streamObserver = nil
 		cacheTask = nil
 		avAssetObserver = nil
 	}
 	
 	func testReceiveResponseAndGetCorrectUtiTypeFromResponseMimeType() {
-		let fakeResponse = FakeResponse(contentLenght: Int64(26))
-		fakeResponse.MIMEType = "audio/mpeg"
+		let fakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
+		                                 MIMEType: "audio/mpeg",
+		                                 expectedContentLength: 26,
+		                                 textEncodingName: nil)
 		
 		let assetRequest = FakeAVAssetResourceLoadingRequest(contentInformationRequest: FakeAVAssetResourceLoadingContentInformationRequest(),
 		                                                     dataRequest: FakeAVAssetResourceLoadingDataRequest())
@@ -62,29 +57,21 @@ class AssetResourceLoaderTests: XCTestCase {
 				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
 					self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest))
 					
-					self.streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
 					
-					self.streamObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
 				}
 				
 				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
 					NSThread.sleepForTimeInterval(0.2)
 					self.avAssetObserver.publishSubject.onNext(.observerDeinit)
 				}
-			} else if case .cancel = progress {
-				if self.session.isInvalidatedAndCanceled {
-					// set reference to nil (simutale real session dispose)
-					self.utilities.streamObserver = nil
-					self.streamObserver = nil
-				}
 			}
 			}.addDisposableTo(bag)
 		
 		cacheTask.taskProgress.loadWithAsset(assetEvents: avAssetObserver.loaderEvents, targetAudioFormat: nil)
 			.doOnCompleted {
-				//guard case Result.success(let box) = e else { return }
-				//XCTAssertTrue(box.value.receivedResponse as? FakeResponse === fakeResponse, "Should cache correct response")
-				//XCTAssertEqual("public.mp3", box.value.utiType, "Should get mime from response and convert to correct uti")
+				XCTAssertEqual(26, assetRequest.contentInformationRequest.contentLength, "Check content lenge of response")
 				XCTAssertEqual(assetRequest.contentInformationRequest.contentType, "public.mp3", "Should get mime from response and convert to correct uti")
 				assetLoadCompletion.fulfill()
 			}.subscribe().addDisposableTo(bag)
@@ -94,8 +81,10 @@ class AssetResourceLoaderTests: XCTestCase {
 	}
 	
 	func testOverrideContentType() {
-		let fakeResponse = FakeResponse(contentLenght: Int64(26))
-		fakeResponse.MIMEType = "audio/mpeg"
+		let fakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
+		                                 MIMEType: "audio/mpeg",
+		                                 expectedContentLength: 26,
+		                                 textEncodingName: nil)
 		
 		let assetRequest = FakeAVAssetResourceLoadingRequest(contentInformationRequest: FakeAVAssetResourceLoadingContentInformationRequest(),
 		                                                     dataRequest: FakeAVAssetResourceLoadingDataRequest())
@@ -107,9 +96,9 @@ class AssetResourceLoaderTests: XCTestCase {
 				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
 					self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest))
 					
-					self.streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
 					
-					self.streamObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
 				}
 				
 				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
@@ -117,19 +106,11 @@ class AssetResourceLoaderTests: XCTestCase {
 					self.avAssetObserver.publishSubject.onNext(.observerDeinit)
 				}
 				
-			} else if case .cancel = progress {
-				if self.session.isInvalidatedAndCanceled {
-					// set reference to nil (simutale real session dispose)
-					self.utilities.streamObserver = nil
-					self.streamObserver = nil
-				}
 			}
-			}.addDisposableTo(bag)
+		}.addDisposableTo(bag)
 		
 		cacheTask.taskProgress.loadWithAsset(assetEvents: avAssetObserver.loaderEvents, targetAudioFormat: ContentType.aac).doOnCompleted {
-			//guard case Result.success(let box) = e else { return }
-			//XCTAssertTrue(box.value.receivedResponse as? FakeResponse === fakeResponse, "Should cache correct response")
-			//XCTAssertEqual("public.aac-audio", box.value.utiType, "Should return correct overriden uti type")
+			XCTAssertEqual(26, assetRequest.contentInformationRequest.contentLength, "Check content lenge of responce")
 			XCTAssertEqual("public.aac-audio", assetRequest.contentInformationRequest.contentType, "Should return correct overriden uti type")
 			assetLoadCompletion.fulfill()
 			}.subscribe().addDisposableTo(bag)
@@ -229,33 +210,27 @@ class AssetResourceLoaderTests: XCTestCase {
 			if case .resume(let tsk) = progress {
 				XCTAssertEqual(tsk.originalRequest?.URL, self.request.URL, "Check correct task url")
 				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
-					let fakeResponse = FakeResponse(contentLenght: Int64(dataRequest.requestedLength))
-					fakeResponse.MIMEType = "audio/mpeg"
-					self.streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
+					let fakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
+						MIMEType: "audio/mpeg",
+						expectedContentLength: dataRequest.requestedLength,
+						textEncodingName: nil)
+
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
 					
 					for i in 0...testData.count - 1 {
 						let sendData = testData[i].dataUsingEncoding(NSUTF8StringEncoding)!
 						sendedData.appendData(sendData)
-						self.streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: self.session, dataTask: tsk, data: sendData))
+						self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: self.session, dataTask: tsk, data: sendData))
 						// simulate delay
 						NSThread.sleepForTimeInterval(0.01)
 					}
-					self.streamObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
 					self.avAssetObserver.publishSubject.onNext(.observerDeinit)
 				}
-			} else if case .cancel = progress {
-				if self.session.isInvalidatedAndCanceled {
-					// set reference to nil (simutale real session dispose)
-					self.utilities.streamObserver = nil
-					self.streamObserver = nil
-				}
 			}
-			}.addDisposableTo(bag)
+		}.addDisposableTo(bag)
 		
-		//var result: (receivedResponse: NSHTTPURLResponseProtocol?, utiType: String?, resultRequestCollection: [Int: AVAssetResourceLoadingRequestProtocol])?
 		cacheTask.taskProgress.loadWithAsset(assetEvents: avAssetObserver.loaderEvents, targetAudioFormat: nil).doOnCompleted {
-			//guard case Result.success(let box) = e else { return }
-			//result = box.value
 			assetLoadingCompletion.fulfill()
 			}.subscribe().addDisposableTo(bag)
 		
@@ -299,9 +274,11 @@ class AssetResourceLoaderTests: XCTestCase {
 			if case .resume(let tsk) = progress {
 				XCTAssertEqual(tsk.originalRequest?.URL, self.request.URL, "Check correct task url")
 				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
-					let fakeResponse = FakeResponse(contentLenght: 22)
-					fakeResponse.MIMEType = "audio/mpeg"
-					self.streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
+					let fakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
+						MIMEType: "audio/mpeg",
+						expectedContentLength: 22,
+						textEncodingName: nil)
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
 					
 					self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest1))
 					self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest2))
@@ -309,28 +286,19 @@ class AssetResourceLoaderTests: XCTestCase {
 					for i in 0...testData.count - 1 {
 						let sendData = testData[i].dataUsingEncoding(NSUTF8StringEncoding)!
 						sendedData.appendData(sendData)
-						self.streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: self.session, dataTask: tsk, data: sendData))
+						self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: self.session, dataTask: tsk, data: sendData))
 						// simulate delay
 						NSThread.sleepForTimeInterval(0.01)
 					}
 					
-					self.streamObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
 					
 					self.avAssetObserver.publishSubject.onNext(.observerDeinit)
 				}
-			} else if case .cancel = progress {
-				if self.session.isInvalidatedAndCanceled {
-					// set reference to nil (simutale real session dispose)
-					self.utilities.streamObserver = nil
-					self.streamObserver = nil
-				}
 			}
-			}.addDisposableTo(bag)
+		}.addDisposableTo(bag)
 		
-		//var result: (receivedResponse: NSHTTPURLResponseProtocol?, utiType: String?, resultRequestCollection: [Int: AVAssetResourceLoadingRequestProtocol])?
 		cacheTask.taskProgress.loadWithAsset(assetEvents: avAssetObserver.loaderEvents, targetAudioFormat: nil).doOnCompleted {
-			//guard case Result.success(let box) = e else { return }
-			//result = box.value
 			assetLoadingCompletion.fulfill()
 			}.subscribe().addDisposableTo(bag)
 		

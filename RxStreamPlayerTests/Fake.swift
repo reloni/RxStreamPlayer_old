@@ -1,79 +1,45 @@
 import Foundation
-import AVFoundation
-import RxSwift
 @testable import RxHttpClient
 @testable import RxStreamPlayer
+import AVFoundation
+import RxSwift
 
-final class FakeRequest : NSMutableURLRequestType {
-	var HTTPMethod: String? = "GET"
-	var headers = [String: String]()
-	var URL: NSURL?
-	var allHTTPHeaderFields: [String: String]? {
-		return headers
-	}
-	
-	init(url: NSURL? = nil) {
-		self.URL = url
-	}
-	
-	func addValue(value: String, forHTTPHeaderField: String) {
-		headers[forHTTPHeaderField] = value
-	}
-	
-	func setHttpMethod(method: String) {
-		HTTPMethod = method
-	}
-}
-
-final class FakeResponse : NSURLResponseType, NSHTTPURLResponseType {
-	var expectedContentLength: Int64
-	var MIMEType: String?
-	
-	init(contentLenght: Int64) {
-		expectedContentLength = contentLenght
-	}
-}
-
-enum FakeDataTaskMethods {
+public enum FakeDataTaskMethods {
 	case resume(FakeDataTask)
 	case suspend(FakeDataTask)
 	case cancel(FakeDataTask)
 }
 
-final class FakeDataTask : NSObject, NSURLSessionDataTaskType {
+public class FakeDataTask : NSObject, NSURLSessionDataTaskType {
 	@available(*, unavailable, message="completion unavailiable. Use FakeSession.sendData instead (session observer will used to send data)")
 	var completion: DataTaskResult?
 	let taskProgress = PublishSubject<FakeDataTaskMethods>()
-	var originalRequest: NSURLRequestType?
+	var originalRequest: NSURLRequest?
 	var isCancelled = false
 	var resumeInvokeCount = 0
 	
-	init(completion: DataTaskResult?) {
+	public init(completion: DataTaskResult?) {
 		//self.completion = completion
 	}
 	
-	func resume() {
+	public func resume() {
 		resumeInvokeCount += 1
 		taskProgress.onNext(.resume(self))
 	}
 	
-	func suspend() {
+	public func suspend() {
 		taskProgress.onNext(.suspend(self))
 	}
 	
-	func cancel() {
+	public func cancel() {
 		if !isCancelled {
 			taskProgress.onNext(.cancel(self))
 			isCancelled = true
 		}
 	}
-	
-	func getOriginalUrlRequest() -> NSURLRequestType? {
-		return originalRequest
-	}
 }
 
-final class FakeSession : NSURLSessionType {
+class FakeSession : NSURLSessionType {
 	var task: FakeDataTask?
 	var isInvalidatedAndCanceled = false
 	
@@ -105,7 +71,7 @@ final class FakeSession : NSURLSessionType {
 		return task
 	}
 	
-	func dataTaskWithRequest(request: NSURLRequestType, completionHandler: DataTaskResult) -> NSURLSessionDataTaskType {
+	func dataTaskWithRequest(request: NSURLRequest, completionHandler: DataTaskResult) -> NSURLSessionDataTaskType {
 		fatalError("should not invoke dataTaskWithRequest with completion handler")
 		guard let task = self.task else {
 			return FakeDataTask(completion: completionHandler)
@@ -115,7 +81,7 @@ final class FakeSession : NSURLSessionType {
 		return task
 	}
 	
-	func dataTaskWithRequest(request: NSURLRequestType) -> NSURLSessionDataTaskType {
+	func dataTaskWithRequest(request: NSURLRequest) -> NSURLSessionDataTaskType {
 		guard let task = self.task else {
 			return FakeDataTask(completion: nil)
 		}
@@ -129,51 +95,6 @@ final class FakeSession : NSURLSessionType {
 		
 		// invoke cancelation of task
 		task?.cancel()
-	}
-}
-
-public class FakeHttpUtilities : HttpUtilitiesType {
-	//var fakeObserver: UrlSessionStreamObserverType?
-	var streamObserver: NSURLSessionDataEventsObserverType?
-	var fakeSession: NSURLSessionType?
-	
-	public func createUrlRequest(baseUrl: String, parameters: [String : String]?) -> NSMutableURLRequestType? {
-		return FakeRequest(url: NSURL(baseUrl: baseUrl, parameters: parameters))
-	}
-	
-	public func createUrlRequest(baseUrl: String, parameters: [String : String]?, headers: [String : String]?) -> NSMutableURLRequestType? {
-		let req = createUrlRequest(baseUrl, parameters: parameters)
-		headers?.forEach { req?.addValue($1, forHTTPHeaderField: $0) }
-		return req
-	}
-	
-	public func createUrlRequest(url: NSURL, headers: [String: String]?) -> NSMutableURLRequestType {
-		let req = FakeRequest(url: url)
-		headers?.forEach { req.addValue($1, forHTTPHeaderField: $0) }
-		return req
-	}
-	
-	public func createUrlSession(configuration: NSURLSessionConfiguration, delegate: NSURLSessionDelegate?, queue: NSOperationQueue?) -> NSURLSessionType {
-		guard let session = fakeSession else {
-			return FakeSession()
-		}
-		return session
-	}
-	
-	func createUrlSessionStreamObserver() -> NSURLSessionDataEventsObserverType {
-		//		guard let observer = fakeObserver else {
-		//			return FakeUrlSessionStreamObserver()
-		//		}
-		//		return observer
-		guard let observer = streamObserver else {
-			return NSURLSessionDataEventsObserver()
-		}
-		return observer
-	}
-	
-	func createStreamDataTask(taskUid: String, dataTask: NSURLSessionDataTaskType, httpClient: HttpClientType,
-	                          sessionEvents: Observable<SessionDataEvents>, cacheProvider: CacheProviderType?) -> StreamDataTaskType {
-		return StreamDataTask(taskUid: NSUUID().UUIDString, dataTask: dataTask, httpClient: httpClient, sessionEvents: sessionEvents, cacheProvider: cacheProvider)
 	}
 }
 

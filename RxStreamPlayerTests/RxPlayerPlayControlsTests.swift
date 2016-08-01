@@ -6,7 +6,7 @@ import RealmSwift
 
 class RxPlayerPlayControlsTests: XCTestCase {
 	let bag = DisposeBag()
-	let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
+	let httpClient = HttpClient(session: FakeSession())
 	
 	override func setUp() {
 		super.setUp()
