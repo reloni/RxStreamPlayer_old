@@ -229,11 +229,11 @@ extension DownloadManager : DownloadManagerType {
 						observer.onError(error)
 						return Observable.empty()
 						}.doOnNext { result in
-							if case .success(let provider) = result {
+							if case .Success(let provider) = result {
 								object.saveData(provider)
 								object.removePendingTask(identifier.streamResourceUid, force: true)
 								observer.onNext(result)
-							} else if case .error(let error) = result {
+							} else if case .Error(let error) = result {
 								observer.onError(error)
 							}	else {
 								observer.onNext(result)

@@ -4,49 +4,39 @@ import Foundation
 import AVFoundation
 import RxSwift
 
-public enum FakeDataTaskMethods {
-	case resume(FakeDataTask)
-	case suspend(FakeDataTask)
-	case cancel(FakeDataTask)
-}
-
-public class FakeDataTask : NSObject, NSURLSessionDataTaskType {
-	@available(*, unavailable, message="completion unavailiable. Use FakeSession.sendData instead (session observer will used to send data)")
-	var completion: DataTaskResult?
-	let taskProgress = PublishSubject<FakeDataTaskMethods>()
+final class FakeDataTask : NSObject, NSURLSessionDataTaskType {
 	var originalRequest: NSURLRequest?
 	var isCancelled = false
 	var resumeInvokeCount = 0
+	var resumeClosure: (() -> ())!
+	var cancelClosure: (() -> ())?
 	
-	public init(completion: DataTaskResult?) {
-		//self.completion = completion
+	init(resumeClosure: () -> (), cancelClosure: (() -> ())? = nil) {
+		self.resumeClosure = resumeClosure
+		self.cancelClosure = cancelClosure
 	}
 	
-	public func resume() {
+	func resume() {
 		resumeInvokeCount += 1
-		taskProgress.onNext(.resume(self))
+		resumeClosure()
 	}
 	
-	public func suspend() {
-		taskProgress.onNext(.suspend(self))
-	}
-	
-	public func cancel() {
+	func cancel() {
 		if !isCancelled {
-			taskProgress.onNext(.cancel(self))
+			cancelClosure?()
 			isCancelled = true
 		}
 	}
 }
 
-class FakeSession : NSURLSessionType {
-	var task: FakeDataTask?
-	var isInvalidatedAndCanceled = false
+final class FakeSession : NSURLSessionType {
+	var task: FakeDataTask!
+	var isFinished = false
 	
 	var configuration: NSURLSessionConfiguration = NSURLSessionConfiguration.defaultSessionConfiguration()
 	
-	init(fakeTask: FakeDataTask? = nil) {
-		task = fakeTask
+	init(dataTask: FakeDataTask? = nil) {
+		task = dataTask
 	}
 	
 	/// Send data as stream (this data should be received through session delegate)
@@ -63,48 +53,28 @@ class FakeSession : NSURLSessionType {
 		streamObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self, dataTask: task, error: error))
 	}
 	
-	func dataTaskWithURL(url: NSURL, completionHandler: DataTaskResult) -> NSURLSessionDataTaskType {
-		guard let task = self.task else {
-			return FakeDataTask(completion: completionHandler)
-		}
-		//task.completion = completionHandler
-		return task
-	}
-	
-	func dataTaskWithRequest(request: NSURLRequest, completionHandler: DataTaskResult) -> NSURLSessionDataTaskType {
-		fatalError("should not invoke dataTaskWithRequest with completion handler")
-		guard let task = self.task else {
-			return FakeDataTask(completion: completionHandler)
-		}
-		//task.completion = completionHandler
-		task.originalRequest = request
-		return task
-	}
-	
 	func dataTaskWithRequest(request: NSURLRequest) -> NSURLSessionDataTaskType {
-		guard let task = self.task else {
-			return FakeDataTask(completion: nil)
-		}
+		if task == nil { fatalError("Data task not specified") }
 		task.originalRequest = request
 		return task
 	}
 	
-	func invalidateAndCancel() {
-		// set flag that session was invalidated and canceled
-		isInvalidatedAndCanceled = true
+	func finishTasksAndInvalidate() {
+		// set flag that session was invalidated
+		isFinished = true
 		
 		// invoke cancelation of task
 		task?.cancel()
 	}
 }
 
-public class FakeStreamResourceIdentifier : StreamResourceIdentifier {
-	public var streamResourceUid: String
+final class FakeStreamResourceIdentifier : StreamResourceIdentifier {
+	var streamResourceUid: String
 	init(uid: String) {
 		streamResourceUid = uid
 	}
 	
-	public var streamResourceUrl: Observable<String> {
+	var streamResourceUrl: Observable<String> {
 		return Observable.create { observer in
 			observer.onNext(self.streamResourceUid)
 			
@@ -112,60 +82,61 @@ public class FakeStreamResourceIdentifier : StreamResourceIdentifier {
 			}.observeOn(ConcurrentDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility))
 	}
 	
-	public var streamResourceContentType: ContentType? {
+	var streamResourceContentType: ContentType? {
 		return nil
 	}
 }
 
-public class FakeStreamResourceLoader : StreamResourceLoaderType {
+final class FakeStreamResourceLoader : StreamResourceLoaderType {
 	var items: [String]
-	public func loadStreamResourceByUid(uid: String) -> StreamResourceIdentifier? {
+	func loadStreamResourceByUid(uid: String) -> StreamResourceIdentifier? {
 		if items.contains(uid) {
 			return FakeStreamResourceIdentifier(uid: uid)
 		}
 		return nil
 	}
-	public init(items: [String] = []) {
+	
+	init(items: [String] = []) {
 		self.items = items
 	}
 }
 
-public class FakeAVAssetResourceLoadingContentInformationRequest : AVAssetResourceLoadingContentInformationRequestProtocol {
-	public var byteRangeAccessSupported = false
-	public var contentLength: Int64 = 0
-	public var contentType: String? = nil
+final class FakeAVAssetResourceLoadingContentInformationRequest : AVAssetResourceLoadingContentInformationRequestProtocol {
+	var byteRangeAccessSupported = false
+	var contentLength: Int64 = 0
+	var contentType: String? = nil
 }
 
-public class FakeAVAssetResourceLoadingDataRequest : AVAssetResourceLoadingDataRequestProtocol {
-	public let respondedData = NSMutableData()
-	public var currentOffset: Int64 = 0
-	public var requestedOffset: Int64 = 0
-	public var requestedLength: Int = 0
-	public func respondWithData(data: NSData) {
+final class FakeAVAssetResourceLoadingDataRequest : AVAssetResourceLoadingDataRequestProtocol {
+	let respondedData = NSMutableData()
+	var currentOffset: Int64 = 0
+	var requestedOffset: Int64 = 0
+	var requestedLength: Int = 0
+	func respondWithData(data: NSData) {
 		respondedData.appendData(data)
 		currentOffset += data.length
 	}
 }
 
-public class FakeAVAssetResourceLoadingRequest : NSObject, AVAssetResourceLoadingRequestProtocol {
-	public var contentInformationRequest: AVAssetResourceLoadingContentInformationRequestProtocol
-	public var dataRequest: AVAssetResourceLoadingDataRequestProtocol
-	public var finished = false
+final class FakeAVAssetResourceLoadingRequest : NSObject, AVAssetResourceLoadingRequestProtocol {
+	var contentInformationRequest: AVAssetResourceLoadingContentInformationRequestProtocol
+	var dataRequest: AVAssetResourceLoadingDataRequestProtocol
+	var finished = false
 	
-	public init(contentInformationRequest: AVAssetResourceLoadingContentInformationRequestProtocol, dataRequest: AVAssetResourceLoadingDataRequestProtocol) {
+	init(contentInformationRequest: AVAssetResourceLoadingContentInformationRequestProtocol, dataRequest: AVAssetResourceLoadingDataRequestProtocol) {
 		self.contentInformationRequest = contentInformationRequest
 		self.dataRequest = dataRequest
 	}
 	
-	public func getContentInformationRequest() -> AVAssetResourceLoadingContentInformationRequestProtocol? {
+	func getContentInformationRequest() -> AVAssetResourceLoadingContentInformationRequestProtocol? {
 		return contentInformationRequest
 	}
 	
-	public func getDataRequest() -> AVAssetResourceLoadingDataRequestProtocol? {
+	func getDataRequest() -> AVAssetResourceLoadingDataRequestProtocol? {
 		return dataRequest
 	}
 	
-	public func finishLoading() {
+	func finishLoading() {
 		finished = true
 	}
 }

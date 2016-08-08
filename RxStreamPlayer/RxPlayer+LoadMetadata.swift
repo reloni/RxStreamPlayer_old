@@ -80,7 +80,7 @@ extension RxPlayer {
 					return Observable.empty()
 					}.observeOn(SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility))
 					.doOnNext { e in
-						if case StreamTaskEvents.cacheData(let prov) = e {
+						if case StreamTaskEvents.CacheData(let prov) = e {
 							receivedDataLen = UInt(prov.currentDataLength)
 							// if we reach maximum amount of allowed data to download
 							if receivedDataLen >= object.matadataMaximumLoadLength {

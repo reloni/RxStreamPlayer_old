@@ -13,14 +13,12 @@ class AssetResourceLoaderTests: XCTestCase {
 	
 	override func setUp() {
 		super.setUp()
-		// Put setup code here. This method is called before the invocation of each test method in the class.
-
+		
 		bag = DisposeBag()
-		//request = FakeRequest(url: NSURL(string: "https://test.com"))
 		request = NSURLRequest(URL: NSURL(string: "https://test.com")!)
-		let fakeTask = FakeDataTask(completion: nil)
+		let fakeTask = FakeDataTask(resumeClosure: { fatalError("Resume closure should be overriden") })
 		fakeTask.originalRequest = request
-		session = FakeSession(fakeTask: fakeTask)
+		session = FakeSession(dataTask: fakeTask)
 		httpClient = HttpClient(session: session)
 		cacheTask = StreamDataTask(taskUid: NSUUID().UUIDString,
 		                           dataTask: session.dataTaskWithRequest(request),
@@ -32,7 +30,6 @@ class AssetResourceLoaderTests: XCTestCase {
 	}
 	
 	override func tearDown() {
-		// Put teardown code here. This method is called after the invocation of each test method in the class.
 		super.tearDown()
 		bag = nil
 		request = nil
@@ -50,24 +47,23 @@ class AssetResourceLoaderTests: XCTestCase {
 		let assetRequest = FakeAVAssetResourceLoadingRequest(contentInformationRequest: FakeAVAssetResourceLoadingContentInformationRequest(),
 		                                                     dataRequest: FakeAVAssetResourceLoadingDataRequest())
 		
-		let assetLoadCompletion = expectationWithDescription("Should complete asset loading")
-		session.task?.taskProgress.bindNext { [unowned self] progress in
-			if case .resume(let tsk) = progress {
-				XCTAssertEqual(tsk.originalRequest?.URL, self.request.URL, "Check correct task url")
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
-					self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest))
-					
-					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
-					
-					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
-				}
+		session.task.resumeClosure = { _ in
+			XCTAssertEqual(self.session.task.originalRequest?.URL, self.request.URL, "Check correct task url")
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
+				self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest))
 				
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
-					NSThread.sleepForTimeInterval(0.2)
-					self.avAssetObserver.publishSubject.onNext(.observerDeinit)
-				}
+				self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: self.session.task, response: fakeResponse, completion: { _ in }))
+				
+				self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: self.session.task, error: nil))
 			}
-			}.addDisposableTo(bag)
+			
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
+				NSThread.sleepForTimeInterval(0.2)
+				self.avAssetObserver.publishSubject.onNext(.observerDeinit)
+			}
+		}
+		
+		let assetLoadCompletion = expectationWithDescription("Should complete asset loading")
 		
 		cacheTask.taskProgress.loadWithAsset(assetEvents: avAssetObserver.loaderEvents, targetAudioFormat: nil)
 			.doOnCompleted {
@@ -89,25 +85,23 @@ class AssetResourceLoaderTests: XCTestCase {
 		let assetRequest = FakeAVAssetResourceLoadingRequest(contentInformationRequest: FakeAVAssetResourceLoadingContentInformationRequest(),
 		                                                     dataRequest: FakeAVAssetResourceLoadingDataRequest())
 		
-		let assetLoadCompletion = expectationWithDescription("Should complete asset loading")
-		session.task?.taskProgress.bindNext { [unowned self] progress in
-			if case .resume(let tsk) = progress {
-				XCTAssertEqual(tsk.originalRequest?.URL, self.request.URL, "Check correct task url")
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
-					self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest))
-					
-					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
-					
-					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
-				}
+		session.task.resumeClosure = {
+			XCTAssertEqual(self.session.task.originalRequest?.URL, self.request.URL, "Check correct task url")
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
+				self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest))
 				
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
-					NSThread.sleepForTimeInterval(0.2)
-					self.avAssetObserver.publishSubject.onNext(.observerDeinit)
-				}
+				self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: self.session.task, response: fakeResponse, completion: { _ in }))
 				
+				self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: self.session.task, error: nil))
 			}
-		}.addDisposableTo(bag)
+			
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
+				NSThread.sleepForTimeInterval(0.2)
+				self.avAssetObserver.publishSubject.onNext(.observerDeinit)
+			}
+		}
+		
+		let assetLoadCompletion = expectationWithDescription("Should complete asset loading")
 		
 		cacheTask.taskProgress.loadWithAsset(assetEvents: avAssetObserver.loaderEvents, targetAudioFormat: ContentType.aac).doOnCompleted {
 			XCTAssertEqual(26, assetRequest.contentInformationRequest.contentLength, "Check content lenge of responce")
@@ -204,31 +198,29 @@ class AssetResourceLoaderTests: XCTestCase {
 		let testData = ["First", "Second", "Third", "Fourth"]
 		let sendedData = NSMutableData()
 		
-		let assetLoadingCompletion = expectationWithDescription("Should complete asset loading")
-		
-		session.task?.taskProgress.bindNext { [unowned self] progress in
-			if case .resume(let tsk) = progress {
-				XCTAssertEqual(tsk.originalRequest?.URL, self.request.URL, "Check correct task url")
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
-					let fakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
-						MIMEType: "audio/mpeg",
-						expectedContentLength: dataRequest.requestedLength,
-						textEncodingName: nil)
-
-					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
-					
-					for i in 0...testData.count - 1 {
-						let sendData = testData[i].dataUsingEncoding(NSUTF8StringEncoding)!
-						sendedData.appendData(sendData)
-						self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: self.session, dataTask: tsk, data: sendData))
-						// simulate delay
-						NSThread.sleepForTimeInterval(0.01)
-					}
-					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
-					self.avAssetObserver.publishSubject.onNext(.observerDeinit)
+		session.task.resumeClosure = {
+			XCTAssertEqual(self.session.task.originalRequest?.URL, self.request.URL, "Check correct task url")
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
+				let fakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
+				                                 MIMEType: "audio/mpeg",
+				                                 expectedContentLength: dataRequest.requestedLength,
+				                                 textEncodingName: nil)
+				
+				self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: self.session.task, response: fakeResponse, completion: { _ in }))
+				
+				for i in 0...testData.count - 1 {
+					let sendData = testData[i].dataUsingEncoding(NSUTF8StringEncoding)!
+					sendedData.appendData(sendData)
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: self.session, dataTask: self.session.task, data: sendData))
+					// simulate delay
+					NSThread.sleepForTimeInterval(0.01)
 				}
+				self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: self.session.task, error: nil))
+				self.avAssetObserver.publishSubject.onNext(.observerDeinit)
 			}
-		}.addDisposableTo(bag)
+		}
+		
+		let assetLoadingCompletion = expectationWithDescription("Should complete asset loading")
 		
 		cacheTask.taskProgress.loadWithAsset(assetEvents: avAssetObserver.loaderEvents, targetAudioFormat: nil).doOnCompleted {
 			assetLoadingCompletion.fulfill()
@@ -268,35 +260,33 @@ class AssetResourceLoaderTests: XCTestCase {
 		let testData = ["First", "Second", "Third", "Fourth"]
 		let sendedData = NSMutableData()
 		
-		let assetLoadingCompletion = expectationWithDescription("Should complete asset loading")
-		
-		session.task?.taskProgress.bindNext { [unowned self] progress in
-			if case .resume(let tsk) = progress {
-				XCTAssertEqual(tsk.originalRequest?.URL, self.request.URL, "Check correct task url")
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
-					let fakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
-						MIMEType: "audio/mpeg",
-						expectedContentLength: 22,
-						textEncodingName: nil)
-					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: tsk, response: fakeResponse, completion: { _ in }))
-					
-					self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest1))
-					self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest2))
-					
-					for i in 0...testData.count - 1 {
-						let sendData = testData[i].dataUsingEncoding(NSUTF8StringEncoding)!
-						sendedData.appendData(sendData)
-						self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: self.session, dataTask: tsk, data: sendData))
-						// simulate delay
-						NSThread.sleepForTimeInterval(0.01)
-					}
-					
-					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: tsk, error: nil))
-					
-					self.avAssetObserver.publishSubject.onNext(.observerDeinit)
+		session.task.resumeClosure = {
+			XCTAssertEqual(self.session.task.originalRequest?.URL, self.request.URL, "Check correct task url")
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [unowned self] in
+				let fakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
+				                                 MIMEType: "audio/mpeg",
+				                                 expectedContentLength: 22,
+				                                 textEncodingName: nil)
+				self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: self.session, dataTask: self.session.task, response: fakeResponse, completion: { _ in }))
+				
+				self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest1))
+				self.avAssetObserver.publishSubject.onNext(.shouldWaitForLoading(assetRequest2))
+				
+				for i in 0...testData.count - 1 {
+					let sendData = testData[i].dataUsingEncoding(NSUTF8StringEncoding)!
+					sendedData.appendData(sendData)
+					self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: self.session, dataTask: self.session.task, data: sendData))
+					// simulate delay
+					NSThread.sleepForTimeInterval(0.01)
 				}
+				
+				self.httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: self.session, dataTask: self.session.task, error: nil))
+				
+				self.avAssetObserver.publishSubject.onNext(.observerDeinit)
 			}
-		}.addDisposableTo(bag)
+		}
+		
+		let assetLoadingCompletion = expectationWithDescription("Should complete asset loading")
 		
 		cacheTask.taskProgress.loadWithAsset(assetEvents: avAssetObserver.loaderEvents, targetAudioFormat: nil).doOnCompleted {
 			assetLoadingCompletion.fulfill()
