@@ -77,7 +77,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let _ = try? NSFileManager.defaultManager().copyItemAtURL(metadataFile, toURL: copiedFile)
 		storage.tempStorageDictionary["https://testitem.com"] = copiedFile.lastPathComponent
 		
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: FakeHttpUtilities()))
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(session: FakeSession()))
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -104,12 +104,9 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 	func testReceiveErrorWhileLoadMetadata() {
 		let storage = LocalNsUserDefaultsStorage()
 		
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
+		let session = FakeSession()
+		let httpClient = HttpClient(session: session)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: httpClient)
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -118,22 +115,14 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let metadataLoadExpectation = expectationWithDescription("Should load metadta from local file")
 		let downloadTaskCancelationExpectation = expectationWithDescription("Should cancel task")
 		
-		// simulate http request failure and send error
-		session.task?.taskProgress.bindNext { e in
-			if case FakeDataTaskMethods.resume(let tsk) = e {
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-					streamObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: session, dataTask: tsk,
-						error: NSError(domain: "HttpRequestTests", code: 17, userInfo: nil)))
-				}
-			} else if case FakeDataTaskMethods.cancel = e {
-				downloadTaskCancelationExpectation.fulfill()
+		session.task = FakeDataTask(resumeClosure:  { _ in
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+				httpClient.sessionObserver.sessionEventsSubject.onNext(.didCompleteWithError(session: session, dataTask: session.task,
+					error: NSError(domain: "HttpRequestTests", code: 17, userInfo: nil)))
 			}
-			}.addDisposableTo(bag)
+			}, cancelClosure: { downloadTaskCancelationExpectation.fulfill() })
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).doOnError { error in
-			//guard case Result.error(let error) = result else { return }
-			//guard case Result.error(let errorType) = result else { return }
-			//let error = errorType as NSError
 			if (error as NSError).code == 17 {
 				metadataLoadExpectation.fulfill()
 			}
@@ -145,12 +134,9 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 	func testReturnMetadataFromRemote() {
 		let storage = LocalNsUserDefaultsStorage()
 		
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
+		let session = FakeSession()
+		let httpClient = HttpClient(session: session)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: httpClient)
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -159,26 +145,29 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let metadataLoadExpectation = expectationWithDescription("Should load metadta from remote")
 		let downloadTaskCancelationExpectation = expectationWithDescription("Should cancel task")
 		
-		// simulate http request 
-		session.task?.taskProgress.bindNext { e in
-			if case FakeDataTaskMethods.resume(let tsk) = e {
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-					let response = FakeResponse(contentLenght: 1024 * 256)
-					response.MIMEType = "audio/mpeg"
-					streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: tsk,
-						response: response, completion: { _ in }))
-					
-					guard let data = NSData(contentsOfURL:
-						NSURL(fileURLWithPath: NSBundle(forClass: RxPlayerMetadataLoadTests.self).pathForResource("MetadataTest", ofType: "mp3")!)) else {
-							return
-					}
-					
-					streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: data))
+		session.task = FakeDataTask(resumeClosure:  { _ in
+			let fakeResponse = NSURLResponse(URL: session.task.originalRequest!.URL!,
+				MIMEType: "audio/mpeg",
+				expectedContentLength: 1024 * 256,
+				textEncodingName: nil)
+			let data = NSData(contentsOfURL: NSURL(fileURLWithPath: NSBundle(forClass: RxPlayerMetadataLoadTests.self).pathForResource("MetadataTest", ofType: "mp3")!))!
+			let fakeUrlEvents = [
+				SessionDataEvents.didReceiveResponse(session: session,
+					dataTask: session.task,
+					response: fakeResponse,
+					completion: { _ in }),
+				SessionDataEvents.didReceiveData(session: session, dataTask: session.task, data: data),
+				SessionDataEvents.didCompleteWithError(session: session, dataTask: session.task, error: nil)
+			]
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+				for event in fakeUrlEvents {
+					// send events to session observer (simulates NSURLSession behavior)
+					httpClient.sessionObserver.sessionEventsSubject.onNext(event)
+					// simulate delay
+					NSThread.sleepForTimeInterval(0.005)
 				}
-			} else if case FakeDataTaskMethods.cancel = e {
-				downloadTaskCancelationExpectation.fulfill()
 			}
-			}.addDisposableTo(bag)
+		}, cancelClosure: { downloadTaskCancelationExpectation.fulfill() })
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
 			let metadata = result
@@ -209,12 +198,9 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let metadataRawData = NSData(contentsOfURL: metadataFile)!
 		
 		let storage = LocalNsUserDefaultsStorage()
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
+		let session = FakeSession()
+		let httpClient = HttpClient(session: session)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: httpClient)
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -223,23 +209,32 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let metadataLoadExpectation = expectationWithDescription("Should load metadta from remote")
 		let downloadTaskCancelationExpectation = expectationWithDescription("Should cancel task")
 		
-		// simulate http request
-		session.task?.taskProgress.bindNext { e in
-			if case FakeDataTaskMethods.resume(let tsk) = e {
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-					let response = FakeResponse(contentLenght: Int64(metadataRawData.length))
-					response.MIMEType = "audio/mpeg"
-					streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: tsk,
-						response: response, completion: { _ in }))
-					
-					// return data chunk greather than maximum allowed by player
-					let dataToSend = metadataRawData.subdataWithRange(NSRange(location: 0, length: Int(player.matadataMaximumLoadLength) + 1))
-					streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: dataToSend))
+		session.task = FakeDataTask(resumeClosure:  { _ in
+			let fakeResponse = NSURLResponse(URL: session.task.originalRequest!.URL!,
+				MIMEType: "audio/mpeg",
+				expectedContentLength: metadataRawData.length,
+				textEncodingName: nil)
+			
+			// return data chunk greather than maximum allowed by player
+			let dataToSend = metadataRawData.subdataWithRange(NSRange(location: 0, length: Int(player.matadataMaximumLoadLength) + 1))
+			
+			let fakeUrlEvents = [
+				SessionDataEvents.didReceiveResponse(session: session,
+					dataTask: session.task,
+					response: fakeResponse,
+					completion: { _ in }),
+				SessionDataEvents.didReceiveData(session: session, dataTask: session.task, data: dataToSend),
+				SessionDataEvents.didCompleteWithError(session: session, dataTask: session.task, error: nil)
+			]
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+				for event in fakeUrlEvents {
+					// send events to session observer (simulates NSURLSession behavior)
+					httpClient.sessionObserver.sessionEventsSubject.onNext(event)
+					// simulate delay
+					NSThread.sleepForTimeInterval(0.005)
 				}
-			} else if case FakeDataTaskMethods.cancel = e {
-				downloadTaskCancelationExpectation.fulfill()
 			}
-			}.addDisposableTo(bag)
+			}, cancelClosure: { downloadTaskCancelationExpectation.fulfill() })
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
 			let metadata = result
@@ -257,17 +252,15 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 	
 	/// This test send one data chunk that is greather than maximum allowed limit by player, and and after that continues to send data.
 	/// And this test should test that even in this situation player will correctly infer duration of track
+	/// WARNING: this test sometimes failing:(
 	func testReturnMetadataFromRemoteAndCorrectlyInferDurationWhenFirstBigChunkSended() {
 		let metadataFile = NSURL(fileURLWithPath: NSBundle(forClass: RxPlayerMetadataLoadTests.self).pathForResource("MetadataTest2", ofType: "mp3")!)
 		let metadataRawData = NSData(contentsOfURL: metadataFile)!
 		
 		let storage = LocalNsUserDefaultsStorage()
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
+		let session = FakeSession()
+		let httpClient = HttpClient(session: session)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: httpClient)
 		
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -279,46 +272,42 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		var canceled = false
 		var sendedDataLength = 0
 		
-		// simulate http request
-		session.task?.taskProgress.bindNext { e in
-			if case FakeDataTaskMethods.resume(let tsk) = e {
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-					let response = FakeResponse(contentLenght: Int64(metadataRawData.length))
-					response.MIMEType = "audio/mpeg"
-					streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: tsk,
-						response: response, completion: { _ in }))
-					
-					var currentOffset = 0
-					let sendDataChunk = Int(player.matadataMaximumLoadLength) + 1
-					while !canceled {
-						if metadataRawData.length - currentOffset > sendDataChunk {
-							let range = NSMakeRange(currentOffset, sendDataChunk)
-							currentOffset += sendDataChunk
-							sendedDataLength = currentOffset
-							let subdata = metadataRawData.subdataWithRange(range)
-							dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-								streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: subdata))
-							}
-							
-							if currentOffset / sendDataChunk > 2 {
-								NSThread.sleepForTimeInterval(0.001)
-							}
-						} else {
-							let range = NSMakeRange(currentOffset, metadataRawData.length - currentOffset)
-							let subdata = metadataRawData.subdataWithRange(range)
-							sendedDataLength = metadataRawData.length
-							dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-								streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: subdata))
-							}
-							break
+		session.task = FakeDataTask(resumeClosure:  { _ in
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+				let response = NSURLResponse(URL: session.task.originalRequest!.URL!,
+					MIMEType: "audio/mpeg",
+					expectedContentLength: metadataRawData.length,
+					textEncodingName: nil)
+				httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: session.task,
+					response: response, completion: { _ in }))
+				
+				var currentOffset = 0
+				let sendDataChunk = Int(player.matadataMaximumLoadLength) + 1
+				while !canceled {
+					if metadataRawData.length - currentOffset > sendDataChunk {
+						let range = NSMakeRange(currentOffset, sendDataChunk)
+						currentOffset += sendDataChunk
+						sendedDataLength = currentOffset
+						let subdata = metadataRawData.subdataWithRange(range)
+						dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+							httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: session.task, data: subdata))
 						}
+						
+						if currentOffset / sendDataChunk > 2 {
+							NSThread.sleepForTimeInterval(0.001)
+						}
+					} else {
+						let range = NSMakeRange(currentOffset, metadataRawData.length - currentOffset)
+						let subdata = metadataRawData.subdataWithRange(range)
+						sendedDataLength = metadataRawData.length
+						dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+							httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: session.task, data: subdata))
+						}
+						break
 					}
 				}
-			} else if case FakeDataTaskMethods.cancel = e {
-				downloadTaskCancelationExpectation.fulfill()
-				canceled = true
 			}
-			}.addDisposableTo(bag)
+		}, cancelClosure: { canceled = true; downloadTaskCancelationExpectation.fulfill() })
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
 			let metadata = result
@@ -341,12 +330,9 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		let metadataRawData = NSData(contentsOfURL: metadataFile)!
 		
 		let storage = LocalNsUserDefaultsStorage()
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: httpUtilities))
+		let session = FakeSession()
+		let httpClient = HttpClient(session: session)
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		let item = player.addLast("https://testitem.com")
 		
@@ -356,43 +342,41 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		var canceled = false
 		var sendedDataLength = 0
 		
-		// simulate http request
-		session.task?.taskProgress.observeOn(SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)).bindNext { e in
-			if case FakeDataTaskMethods.resume(let tsk) = e {
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-					let response = FakeResponse(contentLenght: Int64(metadataRawData.length))
-					response.MIMEType = "audio/mpeg"
-					streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: tsk,
-						response: response, completion: { _ in }))
-					
-					var currentOffset = 0
-					let sendDataChunk = 1024 * 5
-					while !canceled {
-						if metadataRawData.length - currentOffset > sendDataChunk {
-							let range = NSMakeRange(currentOffset, sendDataChunk)
-							currentOffset += sendDataChunk
-							sendedDataLength = currentOffset
-							let subdata = metadataRawData.subdataWithRange(range)
-							dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-								streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: subdata))
-							}
-							NSThread.sleepForTimeInterval(0.005)
-						} else {
-							let range = NSMakeRange(currentOffset, metadataRawData.length - currentOffset)
-							let subdata = metadataRawData.subdataWithRange(range)
-							sendedDataLength = metadataRawData.length
-							dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-								streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: subdata))
-							}
-							break
+		session.task = FakeDataTask(resumeClosure:  { _ in
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+				//let response = FakeResponse(contentLenght: Int64(metadataRawData.length))
+				let response = NSURLResponse(URL: session.task.originalRequest!.URL!,
+					MIMEType: "audio/mpeg",
+					expectedContentLength: metadataRawData.length,
+					textEncodingName: nil)
+				
+				httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: session.task,
+					response: response, completion: { _ in }))
+				
+				var currentOffset = 0
+				let sendDataChunk = 1024 * 5
+				while !canceled {
+					if metadataRawData.length - currentOffset > sendDataChunk {
+						let range = NSMakeRange(currentOffset, sendDataChunk)
+						currentOffset += sendDataChunk
+						sendedDataLength = currentOffset
+						let subdata = metadataRawData.subdataWithRange(range)
+						dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+							httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: session.task, data: subdata))
 						}
+						NSThread.sleepForTimeInterval(0.005)
+					} else {
+						let range = NSMakeRange(currentOffset, metadataRawData.length - currentOffset)
+						let subdata = metadataRawData.subdataWithRange(range)
+						sendedDataLength = metadataRawData.length
+						dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+							httpClient.sessionObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: session.task, data: subdata))
+						}
+						break
 					}
 				}
-			} else if case FakeDataTaskMethods.cancel = e {
-				downloadTaskCancelationExpectation.fulfill()
-				canceled = true
 			}
-			}.addDisposableTo(bag)
+		}, cancelClosure: { canceled = true; downloadTaskCancelationExpectation.fulfill() })
 		
 		player.loadMetadata(item.streamIdentifier, downloadManager: downloadManager, utilities: StreamPlayerUtilities()).bindNext { result in
 			let metadata = result
@@ -417,12 +401,12 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 		XCTAssertEqual(track?.title, "Mr. Chow")
 		XCTAssertNil(track?.album.artwork)
 	}
-		
+	
 	func testReturnErrorForItemWithUnknownScheme() {
 		let storage = LocalNsUserDefaultsStorage()
-		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(httpUtilities: HttpUtilities()))
-
-		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
+		let downloadManager = DownloadManager(saveData: false, fileStorage: storage, httpClient: HttpClient(session: FakeSession()))
+		
+		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager)
 		
 		let item = player.addLast("wrong://testitem.com")
 		
@@ -433,7 +417,7 @@ class RxPlayerMetadataLoadTests: XCTestCase {
 			XCTAssertEqual("wrong://testitem.com", uid)
 			XCTAssertEqual("wrong://testitem.com", url)
 			metadataLoadExpectation.fulfill()
-		}.subscribe().addDisposableTo(bag)
+			}.subscribe().addDisposableTo(bag)
 		
 		waitForExpectationsWithTimeout(1, handler: nil)
 	}

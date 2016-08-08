@@ -38,7 +38,7 @@ extension Observable where Element : StreamTaskEventsType {
 			
 			// local variables
 			var resourceLoadingRequests = [Int: AVAssetResourceLoadingRequestProtocol]()
-			var response: NSHTTPURLResponseType?
+			var response: NSURLResponse?
 			var cacheProvider: CacheProviderType?
 			
 			
@@ -47,7 +47,7 @@ extension Observable where Element : StreamTaskEventsType {
 			func getUtiType() -> String? {
 				return targetAudioFormat?.definition.UTI ?? {
 					guard let response = response else { return nil }
-					return MimeTypeConverter.getUtiFromMime(response.getMimeType())
+					return MimeTypeConverter.getUtiFromMime(response.MIMEType ?? "")
 					}()
 			}
 			
@@ -123,13 +123,13 @@ extension Observable where Element : StreamTaskEventsType {
 					return Observable.empty()
 					}.bindNext { e in
 						switch e as! StreamTaskEvents {
-						case .success(let provider):
+						case .Success(let provider):
 							if let provider = provider {
 								cacheProvider = provider
 								processRequests(provider)
 							}
-						case .receiveResponse(let receivedResponse): response = receivedResponse
-						case .cacheData(let provider):
+						case .ReceiveResponse(let receivedResponse): response = receivedResponse
+						case .CacheData(let provider):
 							cacheProvider = provider
 							processRequests(provider)
 						default: break

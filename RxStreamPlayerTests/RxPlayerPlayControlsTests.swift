@@ -6,7 +6,7 @@ import RealmSwift
 
 class RxPlayerPlayControlsTests: XCTestCase {
 	let bag = DisposeBag()
-	let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
+	let httpClient = HttpClient(session: FakeSession(dataTask: FakeDataTask(resumeClosure: { _ in })))
 	
 	override func setUp() {
 		super.setUp()
@@ -33,7 +33,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	
 	func testStartPlaying() {
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
-		//let player = RxPlayer(repeatQueue: false, internalPlayer: FakeInternalPlayer(), downloadManager: downloadManager)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
 		XCTAssertFalse(player.playing, "Playing property should be false")
@@ -66,8 +65,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	
 	func testPausing() {
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
-		//let player = RxPlayer(repeatQueue: false, internalPlayer: FakeInternalPlayer(), downloadManager: downloadManager)
-		//let player = RxPlayer(repeatQueue: false, internalPlayer: FakeInternalPlayer())
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
 		let pausingExpectation = expectationWithDescription("Should rise Pausing event")

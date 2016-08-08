@@ -1,18 +1,18 @@
 import XCTest
 import RxSwift
 import RxTests
+import OHHTTPStubs
 @testable import RxStreamPlayer
 @testable import RxHttpClient
 
-extension HttpClient {
-	convenience init(httpUtilities: HttpUtilitiesType) {
-		self.init(sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration(), httpUtilities: httpUtilities)
-	}
-}
-
 class DownloadManagerTests: XCTestCase {
 	let bag = DisposeBag()
-	let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
+	let httpClient = HttpClient(session: FakeSession(dataTask: FakeDataTask( resumeClosure: { _ in })))
+	
+	let defaultFakeResponse = NSURLResponse(URL: NSURL(baseUrl: "http://test.com")!,
+	                                 MIMEType: "audio/mpeg",
+	                                 expectedContentLength: 0,
+	                                 textEncodingName: nil)
 	
 	override func setUp() {
 		super.setUp()
@@ -111,13 +111,10 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testThreadSafetyForCreateObservable() {
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
+		let session = FakeSession(dataTask: FakeDataTask(resumeClosure: { _ in }))
+		let httpClient = HttpClient(session: session)
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		
 		for _ in 0...10 {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
@@ -133,7 +130,7 @@ class DownloadManagerTests: XCTestCase {
 	
 	func testDownloadObservableForIncorrectUrl() {
 		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
-	
+		
 		let errorExpectation = expectationWithDescription("Should send error message")
 		manager.createDownloadObservable("wrong://test.com", priority: .Normal).doOnError { error in
 			if case DownloadManagerErrors.unsupportedUrlScheme(_, let uid) = error {
@@ -141,9 +138,9 @@ class DownloadManagerTests: XCTestCase {
 			} else {
 				XCTFail("Incorrect error returned")
 			}
-				
+			
 			errorExpectation.fulfill()
-		}.subscribe().addDisposableTo(bag)
+			}.subscribe().addDisposableTo(bag)
 		waitForExpectationsWithTimeout(1, handler: nil)
 	}
 	
@@ -166,43 +163,44 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testCorrectCreateAndDisposeDownloadObservable() {
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		
+		let session = FakeSession()
+		let httpClient = HttpClient(session: session)
 		let downloadTaskCancelationExpectation = expectationWithDescription("Should cancel underlying task")
-		// simulate http request
-		session.task?.taskProgress.bindNext { e in
-			if case FakeDataTaskMethods.resume(let tsk) = e {
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-					let response = FakeResponse(contentLenght: 0)
-					response.MIMEType = "audio/mpeg"
-					streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: tsk,
-						response: response, completion: { _ in }))
-					
-					let data = NSData()
-					streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: data))
-					streamObserver.sessionEventsSubject.onNext(SessionDataEvents.didCompleteWithError(session: session, dataTask: tsk, error: nil))
-				}
-			} else if case FakeDataTaskMethods.cancel = e {
-				downloadTaskCancelationExpectation.fulfill()
-			}
-			}.addDisposableTo(bag)
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
+		let resumeActions = {
+			let fakeUrlEvents = [
+				SessionDataEvents.didReceiveResponse(session: session,
+					dataTask: session.task,
+					response: self.defaultFakeResponse,
+					completion: { _ in }),
+				SessionDataEvents.didReceiveData(session: session, dataTask: session.task, data: NSData()),
+				SessionDataEvents.didCompleteWithError(session: session, dataTask: session.task, error: nil)
+			]
+			
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { _ in
+				for event in fakeUrlEvents {
+					// send events to session observer (simulates NSURLSession behavior)
+					httpClient.sessionObserver.sessionEventsSubject.onNext(event)
+					// simulate delay
+					NSThread.sleepForTimeInterval(0.005)
+				}
+			}
+		}
+		
+		session.task = FakeDataTask(resumeClosure: resumeActions, cancelClosure: { downloadTaskCancelationExpectation.fulfill() })
+
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		
 		let successExpectation = expectationWithDescription("Should receive success message")
 		let cacheDataExpectation = expectationWithDescription("Should receive cache data event")
 		manager.createDownloadObservable("https://test.com", priority: .Normal).bindNext { e in
-			if case StreamTaskEvents.success = e {
+			if case StreamTaskEvents.Success = e {
 				successExpectation.fulfill()
-			} else if case StreamTaskEvents.cacheData(_) = e {
+			} else if case StreamTaskEvents.CacheData(_) = e {
 				XCTAssertEqual(1, manager.pendingTasks.count, "Task should be in pending task during processing")
 				cacheDataExpectation.fulfill()
 			}
-		}.addDisposableTo(bag)
+			}.addDisposableTo(bag)
 		
 		waitForExpectationsWithTimeout(1, handler: nil)
 		
@@ -210,33 +208,33 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testCorrectCreateAndDisposeDownloadObservableWhenReceiveError() {
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		
+		let session = FakeSession()
+		let httpClient = HttpClient(session: session)
 		let downloadTaskCancelationExpectation = expectationWithDescription("Should cancel underlying task")
-		// simulate http request
-		session.task?.taskProgress.bindNext { e in
-			if case FakeDataTaskMethods.resume(let tsk) = e {
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-					let response = FakeResponse(contentLenght: 0)
-					response.MIMEType = "audio/mpeg"
-					streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: tsk,
-						response: response, completion: { _ in }))
-					
-					let data = NSData()
-					streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: data))
-					let error = NSError(domain: "DownloadManagerTests", code: 15, userInfo: nil)
-					streamObserver.sessionEventsSubject.onNext(SessionDataEvents.didCompleteWithError(session: session, dataTask: tsk, error: error))
-				}
-			} else if case FakeDataTaskMethods.cancel = e {
-				downloadTaskCancelationExpectation.fulfill()
-			}
-			}.addDisposableTo(bag)
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
+		let resumeActions = {
+			let fakeUrlEvents = [
+				SessionDataEvents.didReceiveResponse(session: session,
+					dataTask: session.task,
+					response: self.defaultFakeResponse,
+					completion: { _ in }),
+				SessionDataEvents.didReceiveData(session: session, dataTask: session.task, data: NSData()),
+				SessionDataEvents.didCompleteWithError(session: session, dataTask: session.task, error: NSError(domain: "DownloadManagerTests", code: 15, userInfo: nil))
+			]
+			
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { _ in
+				for event in fakeUrlEvents {
+					// send events to session observer (simulates NSURLSession behavior)
+					httpClient.sessionObserver.sessionEventsSubject.onNext(event)
+					// simulate delay
+					NSThread.sleepForTimeInterval(0.005)
+				}
+			}
+		}
+		
+		session.task = FakeDataTask(resumeClosure: resumeActions, cancelClosure: { downloadTaskCancelationExpectation.fulfill() })
+		
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		
 		let errorExpectation = expectationWithDescription("Should receive error message")
 		manager.createDownloadObservable("https://test.com", priority: .Normal).doOnError { errorType in
@@ -244,7 +242,6 @@ class DownloadManagerTests: XCTestCase {
 			XCTAssertEqual(15, error.code, "Check receive error with correct code")
 			errorExpectation.fulfill()
 			}.subscribe().addDisposableTo(bag)
-		//XCTAssertEqual(1, manager.pendingTasks.count, "Should add task to pending")
 		
 		waitForExpectationsWithTimeout(1, handler: nil)
 		
@@ -276,46 +273,45 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testCacheCorrectDataIfHasMoreThanOneObservers() {
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		
-		let sendData = ["first", "second", "third", "fourth"]
-		let sendedData = NSMutableData()
+		let session = FakeSession()
+		let httpClient = HttpClient(session: session)
 		let downloadTaskCancelationExpectation = expectationWithDescription("Should cancel underlying task")
-		session.task?.taskProgress.bindNext { e in
-			if case FakeDataTaskMethods.resume(let tsk) = e {
-				dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
-					let response = FakeResponse(contentLenght: 0)
-					response.MIMEType = "audio/mpeg"
-					streamObserver.sessionEventsSubject.onNext(.didReceiveResponse(session: session, dataTask: tsk,
-						response: response, completion: { _ in }))
-					
-					for i in 0...sendData.count - 1 {
-						let dataToSend = sendData[i].dataUsingEncoding(NSUTF8StringEncoding)!
-						sendedData.appendData(dataToSend)
-						streamObserver.sessionEventsSubject.onNext(.didReceiveData(session: session, dataTask: tsk, data: dataToSend))
-						NSThread.sleepForTimeInterval(0.05)
-					}
-					streamObserver.sessionEventsSubject.onNext(SessionDataEvents.didCompleteWithError(session: session, dataTask: tsk, error: nil))
-				}
-			} else if case FakeDataTaskMethods.cancel = e {
-				downloadTaskCancelationExpectation.fulfill()
-			}
-			}.addDisposableTo(bag)
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
+		let resumeActions = {
+			let fakeUrlEvents = [
+				SessionDataEvents.didReceiveResponse(session: session,
+					dataTask: session.task,
+					response: self.defaultFakeResponse,
+					completion: { _ in }),
+				SessionDataEvents.didReceiveData(session: session, dataTask: session.task, data: "first".dataUsingEncoding(NSUTF8StringEncoding)!),
+				SessionDataEvents.didReceiveData(session: session, dataTask: session.task, data: "second".dataUsingEncoding(NSUTF8StringEncoding)!),
+				SessionDataEvents.didReceiveData(session: session, dataTask: session.task, data: "third".dataUsingEncoding(NSUTF8StringEncoding)!),
+				SessionDataEvents.didReceiveData(session: session, dataTask: session.task, data: "fourth".dataUsingEncoding(NSUTF8StringEncoding)!),
+				SessionDataEvents.didCompleteWithError(session: session, dataTask: session.task, error: nil)
+			]
+			
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { _ in
+				for event in fakeUrlEvents {
+					// send events to session observer (simulates NSURLSession behavior)
+					httpClient.sessionObserver.sessionEventsSubject.onNext(event)
+					// simulate delay
+					NSThread.sleepForTimeInterval(0.005)
+				}
+			}
+		}
+		
+		session.task = FakeDataTask(resumeClosure: resumeActions, cancelClosure: { downloadTaskCancelationExpectation.fulfill() })
+		
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		
 		// first subscription
 		let successExpectation = expectationWithDescription("Should receive success message")
 		var cacheDataExpectation: XCTestExpectation? = expectationWithDescription("Should receive CacheData event for first subscription")
 		manager.createDownloadObservable("https://test.com", priority: .Normal).bindNext { e in
-			if case StreamTaskEvents.success(let cacheProvider) = e {
-				XCTAssert(sendedData.isEqualToData(cacheProvider?.getCurrentData() ?? NSData()))
+			if case StreamTaskEvents.Success(let cacheProvider) = e {
+				XCTAssertEqual(true, cacheProvider?.getCurrentData().isEqualToData("firstsecondthirdfourth".dataUsingEncoding(NSUTF8StringEncoding)!))
 				successExpectation.fulfill()
-			} else if case StreamTaskEvents.cacheData = e {
+			} else if case StreamTaskEvents.CacheData = e {
 				XCTAssertEqual(1, manager.pendingTasks.count, "Should add only one task to pending")
 				cacheDataExpectation?.fulfill()
 				cacheDataExpectation = nil
@@ -326,10 +322,10 @@ class DownloadManagerTests: XCTestCase {
 		let successSecondObservableExpectation = expectationWithDescription("Should receive success message")
 		var cacheDataSecondExpectation: XCTestExpectation? = expectationWithDescription("Should receive CacheData event for second subscription")
 		manager.createDownloadObservable("https://test.com", priority: .Normal).bindNext { e in
-			if case StreamTaskEvents.success(let cacheProvider) = e {
-				XCTAssert(sendedData.isEqualToData(cacheProvider?.getCurrentData() ?? NSData()))
+			if case StreamTaskEvents.Success(let cacheProvider) = e {
+				XCTAssertEqual(true, cacheProvider?.getCurrentData().isEqualToData("firstsecondthirdfourth".dataUsingEncoding(NSUTF8StringEncoding)!))
 				successSecondObservableExpectation.fulfill()
-			} else if case StreamTaskEvents.cacheData = e {
+			} else if case StreamTaskEvents.CacheData = e {
 				XCTAssertEqual(1, manager.pendingTasks.count, "Should add only one task to pending")
 				cacheDataSecondExpectation?.fulfill()
 				cacheDataSecondExpectation = nil
@@ -338,23 +334,24 @@ class DownloadManagerTests: XCTestCase {
 		
 		
 		
-		waitForExpectationsWithTimeout(1, handler: nil)
+		waitForExpectationsWithTimeout(4, handler: nil)
 		
 		XCTAssertEqual(0, manager.pendingTasks.count, "Should remove task from pending")
 		XCTAssertEqual(1, session.task?.resumeInvokeCount, "Should invoke resume on DataTask only once")
 	}
 	
 	func testCancelTaskWhenObservableDisposing() {
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
+		let taskResumedExpectation = expectationWithDescription("Should start task")
+		let session = FakeSession(dataTask: FakeDataTask(resumeClosure: { taskResumedExpectation.fulfill() }))
+		let httpClient = HttpClient(session: session)
+		
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		
 		let disposable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
-		NSThread.sleepForTimeInterval(0.2)
+		//NSThread.sleepForTimeInterval(0.2)
+		waitForExpectationsWithTimeout(1, handler: nil)
+		XCTAssertEqual(1, manager.pendingTasks.count)
+		XCTAssertEqual(true, manager.pendingTasks.first?.1.task.resumed)
 		disposable.dispose()
 		NSThread.sleepForTimeInterval(0.2)
 		
@@ -363,48 +360,41 @@ class DownloadManagerTests: XCTestCase {
 	}
 	
 	func testCancelTaskOnlyAfterLastObservableDisposed() {
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
+		let session = FakeSession(dataTask: FakeDataTask(resumeClosure: { _ in}))
 		
-		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(httpUtilities: httpUtilities))
+		let manager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: HttpClient(session: session))
 		
 		let firstObservable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
 		let secondObservable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
 		let thirdObservable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
 		
-		NSThread.sleepForTimeInterval(0.2)
+		NSThread.sleepForTimeInterval(0.5)
 		
 		XCTAssertEqual(1, manager.pendingTasks.count, "Check add task to pending")
 		
 		firstObservable.dispose()
-		NSThread.sleepForTimeInterval(0.2)
+		NSThread.sleepForTimeInterval(0.5)
 		
 		XCTAssertEqual(1, manager.pendingTasks.count, "Check still has task in pending")
 		XCTAssertEqual(false, session.task?.isCancelled, "Check underlying task not canceled")
 		
 		secondObservable.dispose()
-		NSThread.sleepForTimeInterval(0.2)
+		NSThread.sleepForTimeInterval(0.5)
 		
 		XCTAssertEqual(1, manager.pendingTasks.count, "Check still has task in pending")
 		XCTAssertEqual(false, session.task?.isCancelled, "Check underlying task not canceled")
 		
 		thirdObservable.dispose()
-		NSThread.sleepForTimeInterval(0.2)
+		NSThread.sleepForTimeInterval(0.5)
 		
 		XCTAssertEqual(0, manager.pendingTasks.count, "Check remove task from pending")
 		XCTAssertEqual(true, session.task?.isCancelled, "Check underlying task canceled")
 	}
 	
 	func testNotStartNewTaskWhenHaveAnotherPendingTask() {
-		let streamObserver = NSURLSessionDataEventsObserver()
-		let httpUtilities = FakeHttpUtilities()
-		httpUtilities.streamObserver = streamObserver
-		let session = FakeSession(fakeTask: FakeDataTask(completion: nil))
-		httpUtilities.fakeSession = session
-		let httpClient = HttpClient(httpUtilities: httpUtilities)
+		let session = FakeSession(dataTask: FakeDataTask(resumeClosure: { _ in}))
+		
+		let httpClient = HttpClient(session: session)
 		
 		let manager = DownloadManager(saveData: false,
 		                              fileStorage: LocalNsUserDefaultsStorage(),
@@ -413,20 +403,20 @@ class DownloadManagerTests: XCTestCase {
 		                              runningTaskCheckTimeout: 1)
 		
 		// create task, start it and add to pending tasks
-		let runningTask = httpUtilities.createStreamDataTask("http://test.com",
-		                                   dataTask: session.task!,
-		                                   httpClient: httpClient,
-		                                   sessionEvents: httpClient.sessionObserver.sessionEvents,
-		                                   cacheProvider: nil)
+		let runningTask = StreamDataTask(taskUid: "http://test.com",
+		                                 dataTask: session.task!,
+		                                 httpClient: httpClient,
+		                                 sessionEvents: httpClient.sessionObserver.sessionEvents,
+		                                 cacheProvider: nil)
 		runningTask.resume()
 		manager.pendingTasks[runningTask.uid] = PendingTask(task: runningTask)
 		
 		// create another task and add to pendings too
-		let newTask = httpUtilities.createStreamDataTask("http://test2.com",
-		                                                     dataTask: session.task!,
-		                                                     httpClient: httpClient,
-		                                                     sessionEvents: httpClient.sessionObserver.sessionEvents,
-		                                                     cacheProvider: nil)
+		let newTask = StreamDataTask(taskUid: "http://test2.com",
+		                             dataTask: session.task!,
+		                             httpClient: httpClient,
+		                             sessionEvents: httpClient.sessionObserver.sessionEvents,
+		                             cacheProvider: nil)
 		manager.pendingTasks[newTask.uid] = PendingTask(task: newTask)
 		
 		// create PublishSubject, that will simutale task check interval
@@ -436,6 +426,11 @@ class DownloadManagerTests: XCTestCase {
 		
 		XCTAssertEqual(false, newTask.resumed, "Check new task not started")
 		interval.onNext(1)
+		NSThread.sleepForTimeInterval(0.2)
+		XCTAssertEqual(false, newTask.resumed, "Check new task not started after monitoring tick")
+		
+		interval.onNext(1)
+		NSThread.sleepForTimeInterval(0.2)
 		XCTAssertEqual(false, newTask.resumed, "Check new task not started after monitoring tick")
 		
 		// cancel current task
