@@ -10,6 +10,7 @@ class AssetResourceLoaderTests: XCTestCase {
 	var httpClient: HttpClient!
 	var avAssetObserver: AVAssetResourceLoaderEventsObserver!
 	var cacheTask: StreamDataTaskType!
+	let waitTime = 4.0
 	
 	override func setUp() {
 		super.setUp()
@@ -73,7 +74,7 @@ class AssetResourceLoaderTests: XCTestCase {
 			}.subscribe().addDisposableTo(bag)
 		cacheTask.resume()
 		
-		waitForExpectationsWithTimeout(1, handler: nil)
+		waitForExpectationsWithTimeout(waitTime, handler: nil)
 	}
 	
 	func testOverrideContentType() {
@@ -110,7 +111,7 @@ class AssetResourceLoaderTests: XCTestCase {
 			}.subscribe().addDisposableTo(bag)
 		cacheTask.resume()
 		
-		waitForExpectationsWithTimeout(1, handler: nil)
+		waitForExpectationsWithTimeout(waitTime, handler: nil)
 	}
 	
 //	func testReceiveNewLoadingRequest() {
@@ -230,7 +231,7 @@ class AssetResourceLoaderTests: XCTestCase {
 		cacheTask.resume()
 		
 		
-		waitForExpectationsWithTimeout(1, handler: nil)
+		waitForExpectationsWithTimeout(waitTime, handler: nil)
 		
 		XCTAssertTrue(sendedData.isEqualToData(dataRequest.respondedData), "Check correct data sended to dataRequest")
 		//XCTAssertEqual(0, result?.resultRequestCollection.count, " Check remove loading request from collection of pending requests")
@@ -294,7 +295,7 @@ class AssetResourceLoaderTests: XCTestCase {
 		
 		cacheTask.resume()
 		
-		waitForExpectationsWithTimeout(1, handler: nil)
+		waitForExpectationsWithTimeout(waitTime, handler: nil)
 		
 		XCTAssertTrue(sendedData.subdataWithRange(NSMakeRange(0, 11)).isEqualToData(dataRequest1.respondedData), "Check half of data sended to first dataRequest")
 		XCTAssertTrue(sendedData.subdataWithRange(NSMakeRange(11, 11)).isEqualToData(dataRequest2.respondedData), "Check second half of data sended to secondRequest")
@@ -321,6 +322,6 @@ class AssetResourceLoaderTests: XCTestCase {
 		
 		asset.loadValuesAsynchronouslyForKeys(["duration"], completionHandler: nil)
 		
-		waitForExpectationsWithTimeout(4, handler: nil)
+		waitForExpectationsWithTimeout(waitTime, handler: nil)
 	}
 }

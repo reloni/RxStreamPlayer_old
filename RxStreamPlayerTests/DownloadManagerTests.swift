@@ -334,7 +334,7 @@ class DownloadManagerTests: XCTestCase {
 		
 		
 		
-		waitForExpectationsWithTimeout(1, handler: nil)
+		waitForExpectationsWithTimeout(4, handler: nil)
 		
 		XCTAssertEqual(0, manager.pendingTasks.count, "Should remove task from pending")
 		XCTAssertEqual(1, session.task?.resumeInvokeCount, "Should invoke resume on DataTask only once")
@@ -368,24 +368,24 @@ class DownloadManagerTests: XCTestCase {
 		let secondObservable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
 		let thirdObservable = manager.createDownloadObservable("http://test.com", priority: .Normal).subscribe()
 		
-		NSThread.sleepForTimeInterval(0.2)
+		NSThread.sleepForTimeInterval(0.5)
 		
 		XCTAssertEqual(1, manager.pendingTasks.count, "Check add task to pending")
 		
 		firstObservable.dispose()
-		NSThread.sleepForTimeInterval(0.2)
+		NSThread.sleepForTimeInterval(0.5)
 		
 		XCTAssertEqual(1, manager.pendingTasks.count, "Check still has task in pending")
 		XCTAssertEqual(false, session.task?.isCancelled, "Check underlying task not canceled")
 		
 		secondObservable.dispose()
-		NSThread.sleepForTimeInterval(0.2)
+		NSThread.sleepForTimeInterval(0.5)
 		
 		XCTAssertEqual(1, manager.pendingTasks.count, "Check still has task in pending")
 		XCTAssertEqual(false, session.task?.isCancelled, "Check underlying task not canceled")
 		
 		thirdObservable.dispose()
-		NSThread.sleepForTimeInterval(0.2)
+		NSThread.sleepForTimeInterval(0.5)
 		
 		XCTAssertEqual(0, manager.pendingTasks.count, "Check remove task from pending")
 		XCTAssertEqual(true, session.task?.isCancelled, "Check underlying task canceled")
