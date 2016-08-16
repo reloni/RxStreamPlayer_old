@@ -405,7 +405,6 @@ class DownloadManagerTests: XCTestCase {
 		// create task, start it and add to pending tasks
 		let runningTask = StreamDataTask(taskUid: "http://test.com",
 		                                 dataTask: session.task!,
-		                                 httpClient: httpClient,
 		                                 sessionEvents: httpClient.sessionObserver.sessionEvents,
 		                                 cacheProvider: nil)
 		runningTask.resume()
@@ -414,7 +413,6 @@ class DownloadManagerTests: XCTestCase {
 		// create another task and add to pendings too
 		let newTask = StreamDataTask(taskUid: "http://test2.com",
 		                             dataTask: session.task!,
-		                             httpClient: httpClient,
 		                             sessionEvents: httpClient.sessionObserver.sessionEvents,
 		                             cacheProvider: nil)
 		manager.pendingTasks[newTask.uid] = PendingTask(task: newTask)
