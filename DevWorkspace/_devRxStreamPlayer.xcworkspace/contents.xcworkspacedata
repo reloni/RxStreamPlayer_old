@@ -2,9 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:../RxHttpClient/RxHttpClient.xcodeproj">
+      location = "group:../../RxHttpClient/RxHttpClient.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:RxStreamPlayer.xcodeproj">
+      location = "group:../RxStreamPlayer.xcodeproj">
    </FileRef>
 </Workspace>
