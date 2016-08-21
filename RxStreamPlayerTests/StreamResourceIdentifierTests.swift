@@ -1,4 +1,5 @@
 import XCTest
+import RxBlocking
 @testable import RxStreamPlayer
 
 class StreamResourceIdentifierTests: XCTestCase {
@@ -38,6 +39,6 @@ class StreamResourceIdentifierTests: XCTestCase {
 	
 	func testNotParseIncorrectUrl() {
 		let file = "/Documents/File.txt"
-		XCTAssertNil(try! file.streamResourceType.toBlocking().first())
+		XCTAssertEqual(StreamResourceType.Unknown, try! file.streamResourceType.toBlocking().first())
 	}
 }

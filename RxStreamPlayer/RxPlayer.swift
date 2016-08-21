@@ -29,7 +29,7 @@ public enum PlayerEvents : PlayerEventType {
 	case Error(ErrorType)
 }
 
-public class RxPlayer {
+public final class RxPlayer {
 	public var streamResourceLoaders = [StreamResourceLoaderType]()
 	public let downloadManager: DownloadManagerType
 	public let mediaLibrary: MediaLibraryType
@@ -103,19 +103,17 @@ public class RxPlayer {
 	internal func startStreamTask() {
 		dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
 			self.currentStreamTask?.dispose()
-			self.currentStreamTask = self.internalPlayer.play(self.current!.streamIdentifier).doOnNext { [weak self] event in
-					//print("internal player event: \(event)")
-				if case Result.error(let error) = event {
-					if case DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists = error {
+			self.currentStreamTask = self.internalPlayer.play(self.current!.streamIdentifier)
+				.catchError { [weak self] error in
+					NSLog("catched error while playing: \((error as NSError).localizedDescription)")
+					
+					if case is DownloadManagerErrors = error {
 						self?.playerEventsSubject.onNext(PlayerEvents.Error(error))
 						self?.toNext(true)
 					} else {
 						self?.playerEventsSubject.onNext(PlayerEvents.Error(error))
 					}
-				}
-				}
-				.catchError { error in
-					NSLog("catched error while playing: \((error as NSError).localizedDescription)")
+					
 					return Observable.empty()
 				}.subscribe()
 		}
@@ -174,13 +172,10 @@ public class RxPlayer {
 	public convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, saveData: Bool = false) {
 		let downloadManager = DownloadManager(saveData: saveData,
 		                                      fileStorage: LocalNsUserDefaultsStorage(persistInformationAboutSavedFiles: saveData),
-		                                      httpClient: HttpClient(sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration()))
+		                                      httpClient: HttpClient())
 		
-		self.init(repeatQueue: repeatQueue,
-		          shuffleQueue: shuffleQueue,
-		          downloadManager: downloadManager,
-		          streamPlayerUtilities: StreamPlayerUtilities(),
-		          mediaLibrary: RealmMediaLibrary())
+		self.init(repeatQueue: repeatQueue, shuffleQueue: shuffleQueue,
+		          downloadManager: downloadManager)
 	}
 	
 	public convenience init(repeatQueue: Bool = false, shuffleQueue: Bool = false, downloadManager: DownloadManagerType) {

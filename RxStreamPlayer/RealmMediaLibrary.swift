@@ -6,7 +6,7 @@ import RealmSwift
 // Realm media library
 
 
-public class RealmMediaLibrary {
+public final class RealmMediaLibrary {
 	public init() { }
 	
 	internal func getRealm() throws -> Realm {
@@ -424,7 +424,7 @@ public class RealmEntityWrapper<T: Object> : RealmEntityWrapperType {
 	}
 }
 
-public class RealmArtistWrapper : RealmEntityWrapper<RealmArtist>, ArtistType {
+public final class RealmArtistWrapper : RealmEntityWrapper<RealmArtist>, ArtistType {
 	internal init(realmArtist: RealmArtist, mediaLibrary: RealmMediaLibrary) {
 		super.init(realmObject: realmArtist, uid: realmArtist.uid, mediaLibrary: mediaLibrary)
 	}
@@ -442,7 +442,7 @@ public class RealmArtistWrapper : RealmEntityWrapper<RealmArtist>, ArtistType {
 	}
 }
 
-public class RealmAlbumWrapper : RealmEntityWrapper<RealmAlbum>, AlbumType {
+public final class RealmAlbumWrapper : RealmEntityWrapper<RealmAlbum>, AlbumType {
 	internal init(realmAlbum: RealmAlbum, mediaLibrary: RealmMediaLibrary) {
 		super.init(realmObject: realmAlbum, uid: realmAlbum.uid, mediaLibrary: mediaLibrary)
 	}
@@ -460,7 +460,7 @@ public class RealmAlbumWrapper : RealmEntityWrapper<RealmAlbum>, AlbumType {
 	}
 }
 
-public class RealmTrackWrapper : RealmEntityWrapper<RealmTrack>, TrackType {
+public final class RealmTrackWrapper : RealmEntityWrapper<RealmTrack>, TrackType {
 	internal init(realmTrack: RealmTrack, mediaLibrary: RealmMediaLibrary) {
 		super.init(realmObject: realmTrack, uid: realmTrack.uid, mediaLibrary: mediaLibrary)
 	}
@@ -490,7 +490,7 @@ public class RealmTrackWrapper : RealmEntityWrapper<RealmTrack>, TrackType {
 	}
 }
 
-public class RealmPlayListWrapper : RealmEntityWrapper<RealmPlayList>, PlayListType {
+public final class RealmPlayListWrapper : RealmEntityWrapper<RealmPlayList>, PlayListType {
 	internal init(realmPlayList: RealmPlayList, mediaLibrary: RealmMediaLibrary) {
 		super.init(realmObject: realmPlayList, uid: realmPlayList.uid, mediaLibrary: mediaLibrary)
 	}
@@ -600,7 +600,7 @@ public class RealmMediaCollection<ExposedType, InternalType: Object> :
 	}
 }
 
-public class SynchronizedRealmMediaCollection<ExposedType, InternalType: Object> : RealmMediaCollection<ExposedType, InternalType> {
+public final class SynchronizedRealmMediaCollection<ExposedType, InternalType: Object> : RealmMediaCollection<ExposedType, InternalType> {
 	internal let mediaLibrary: RealmMediaLibrary
 	public init(realmCollection: AnyRealmCollection<InternalType>, mediaLibrary: RealmMediaLibrary) {
 		self.mediaLibrary = mediaLibrary

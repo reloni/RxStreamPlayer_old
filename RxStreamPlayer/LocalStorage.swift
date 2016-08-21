@@ -43,7 +43,7 @@ public protocol LocalStorageType {
 	func clearStorage()
 }
 
-public class LocalNsUserDefaultsStorage {
+public final class LocalNsUserDefaultsStorage {
 	internal static let tempFileStorageId = "CMP_TempFileStorageDictionary"
 	internal static let permanentFileStorageId = "CMP_PermanentFileStorageDictionary"
 	
@@ -140,8 +140,7 @@ extension LocalNsUserDefaultsStorage : LocalStorageType {
 	}
 	
 	internal func saveTo(destination: NSURL, provider: CacheProviderType) -> NSURL? {
-		return provider.saveData(destination,
-		                                   fileExtension: ContentTypeDefinition.getFileExtensionFromMime(provider.contentMimeType ?? ""))
+		return provider.saveData(destination, fileExtension: MimeTypeConverter.getFileExtensionFromMime(provider.contentMimeType ?? ""))
 	}
 	
 	public func createCacheProvider(uid: String, targetMimeType: String?) -> CacheProviderType {

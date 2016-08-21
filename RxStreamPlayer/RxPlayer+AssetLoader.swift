@@ -14,43 +14,6 @@ public struct ContentTypeDefinition {
 		self.UTI = uti
 		self.fileExtension = fileExtension
 	}
-	
-	public static func getUtiFromMime(mimeType: String) -> String? {
-		guard let contentType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, mimeType, nil) else { return nil }
-		
-		return contentType.takeRetainedValue() as String
-	}
-	
-	public static func getFileExtensionFromUti(utiType: String) -> String? {
-		guard let ext = UTTypeCopyPreferredTagWithClass(utiType, kUTTagClassFilenameExtension) else { return nil }
-		
-		return ext.takeRetainedValue() as String
-	}
-	
-	public static func getUtiTypeFromFileExtension(ext: String) -> String? {
-		guard let contentType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, ext, nil) else { return nil }
-		return contentType.takeRetainedValue() as String
-	}
-	
-	public static func getFileExtensionFromMime(mimeType: String) -> String? {
-		guard let uti = getUtiFromMime(mimeType) else { return nil }
-		return getFileExtensionFromUti(uti)
-	}
-	
-	public static func getTypeDefinitionFromMime(mimeType: String) -> ContentTypeDefinition? {
-		guard let uti = getUtiFromMime(mimeType), ext = getFileExtensionFromUti(uti) else { return nil }
-		return ContentTypeDefinition(mime: mimeType, uti: uti, fileExtension: ext)
-	}
-		
-	public static func getMimeTypeFromFileExtension(ext: String) -> String? {
-		guard let uti = getUtiTypeFromFileExtension(ext), mime = UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType) else { return nil }
-		return mime.takeRetainedValue() as String
-	}
-	
-	public static func getMimeTypeFromUti(uti: String) -> String? {
-		guard let mime = UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType) else { return nil }
-		return mime.takeRetainedValue() as String
-	}
 }
 
 public enum ContentType: String {
@@ -66,15 +29,16 @@ public enum ContentType: String {
 	}
 }
 
+protocol StreamTaskEventsType { }
+extension StreamTaskEvents : StreamTaskEventsType { }
 
-extension Observable where Element : ResultType {
+extension Observable where Element : StreamTaskEventsType {
 	internal func loadWithAsset(assetEvents assetLoaderEvents: Observable<AssetLoadingEvents>,
-	                                        targetAudioFormat: ContentType? = nil)
-		-> Observable<Result<Void>> {//Observable<(receivedResponse: NSHTTPURLResponseProtocol?, utiType: String?, resultRequestCollection: [Int: AVAssetResourceLoadingRequestProtocol])> {
+	                                        targetAudioFormat: ContentType? = nil) -> Observable<Void> {
 			
 			// local variables
 			var resourceLoadingRequests = [Int: AVAssetResourceLoadingRequestProtocol]()
-			var response: NSHTTPURLResponseType?
+			var response: NSURLResponse?
 			var cacheProvider: CacheProviderType?
 			
 			
@@ -83,7 +47,7 @@ extension Observable where Element : ResultType {
 			func getUtiType() -> String? {
 				return targetAudioFormat?.definition.UTI ?? {
 					guard let response = response else { return nil }
-					return ContentTypeDefinition.getUtiFromMime(response.getMimeType())
+					return MimeTypeConverter.getUtiFromMime(response.MIMEType ?? "")
 					}()
 			}
 			
@@ -132,10 +96,9 @@ extension Observable where Element : ResultType {
 				return Int64(respondingDataRequest.requestedLength) <= respondingDataRequest.currentOffset + responseLength - respondingDataRequest.requestedOffset
 			}
 			
-			let scheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility,
-			                                             internalSerialQueueName: "com.cloudmusicplayer.assetloader.serialscheduler.\(NSUUID().UUIDString)")
+			let scheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)
 			
-			return Observable<Result<Void>>.create { observer in
+			return Observable<Void>.create { observer in
 				let assetEvents = assetLoaderEvents.observeOn(scheduler).bindNext { e in
 					switch e {
 					case .didCancelLoading(let loadingRequest):
@@ -156,12 +119,10 @@ extension Observable where Element : ResultType {
 				}
 				
 				let streamEvents = self.observeOn(scheduler).catchError { error in
-					observer.onNext(Result.error(error))
-					observer.onCompleted()
+					observer.onError(error)
 					return Observable.empty()
 					}.bindNext { e in
-					if case Result.success(let box) = e as! Result<StreamTaskEvents> {
-						switch box.value {
+						switch e as! StreamTaskEvents {
 						case .Success(let provider):
 							if let provider = provider {
 								cacheProvider = provider
@@ -173,10 +134,6 @@ extension Observable where Element : ResultType {
 							processRequests(provider)
 						default: break
 						}
-					} else if case Result.error(let error) = e as! Result<StreamTaskEvents> {
-						observer.onNext(Result.error(error))
-						observer.onCompleted()
-					}
 				}
 				
 				return AnonymousDisposable {

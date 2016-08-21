@@ -2,20 +2,14 @@ import Foundation
 import RxSwift
 import RxHttpClient
 
-extension StreamTaskEvents {
-	func asResult() -> StreamTaskResult {
-		return Result.success(Box(value: self))
-	}
-}
-
-public class LocalFileStreamDataTask {
-	public let uid: String
-	public var resumed: Bool = false
-	public internal(set) var cacheProvider: CacheProviderType?
-	public let filePath: NSURL
-	internal let subject = PublishSubject<StreamTaskResult>()
+final class LocalFileStreamDataTask {
+	let uid: String
+	var resumed: Bool = false
+	internal(set) var cacheProvider: CacheProviderType?
+	let filePath: NSURL
+	let subject = PublishSubject<StreamTaskEvents>()
 	
-	public init?(uid: String, filePath: String, provider: CacheProviderType? = nil) {
+	init?(uid: String, filePath: String, provider: CacheProviderType? = nil) {
 		if !NSFileManager.fileExistsAtPath(filePath, isDirectory: false) { return nil }
 		self.uid = uid
 		self.filePath = NSURL(fileURLWithPath: filePath)
@@ -26,53 +20,43 @@ public class LocalFileStreamDataTask {
 }
 
 extension LocalFileStreamDataTask : StreamDataTaskType {
-	public var taskProgress: Observable<StreamTaskResult> {
-		return subject.shareReplay(1)
+	var taskProgress: Observable<StreamTaskEvents> {
+		return subject.shareReplay(0)
 	}
 	
-	public func resume() {
+	func resume() {
 		dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) { [weak self] in
 			guard let object = self, cacheProvider = object.cacheProvider else { return }
 			
 			guard let data = NSData(contentsOfFile: object.filePath.path!) else {
-				object.subject.onNext(StreamTaskEvents.Success(cache: nil).asResult())
+				object.subject.onNext(StreamTaskEvents.Success(cache: nil))
 				object.subject.onCompleted()
 				return
 			}
 			
 			object.resumed = true
-			let response = LocalFileResponse(expectedContentLength: Int64(data.length),
-			                                 mimeType: ContentTypeDefinition.getMimeTypeFromFileExtension(object.filePath.pathExtension!))
+			let response = NSURLResponse(URL: object.filePath,
+			                             MIMEType: MimeTypeConverter.getMimeTypeFromFileExtension(object.filePath.pathExtension ?? "dat"),
+			                             expectedContentLength: data.length, textEncodingName: nil)
 			
-			object.subject.onNext(StreamTaskEvents.ReceiveResponse(response).asResult())
+			object.subject.onNext(StreamTaskEvents.ReceiveResponse(response))
 			
-			cacheProvider.setContentMimeTypeIfEmpty(response.getMimeType())
+			cacheProvider.setContentMimeTypeIfEmpty(response.MIMEType ?? "")
 			cacheProvider.appendData(data)
 			
-			object.subject.onNext(StreamTaskEvents.CacheData(cacheProvider).asResult())
-			object.subject.onNext(StreamTaskEvents.Success(cache: nil).asResult())
+			object.subject.onNext(StreamTaskEvents.CacheData(cacheProvider))
+			object.subject.onNext(StreamTaskEvents.Success(cache: nil))
 			
 			object.resumed = false
 			object.subject.onCompleted()
 		}
 	}
 	
-	public func cancel() {
+	func cancel() {
 		resumed = false
 	}
 	
-	public func suspend() {
+	func suspend() {
 		resumed = false
 	}
 }
-
-public class LocalFileResponse {
-	public var expectedContentLength: Int64
-	public var MIMEType: String?
-	init(expectedContentLength: Int64, mimeType: String? = nil) {
-		self.expectedContentLength = expectedContentLength
-		self.MIMEType = mimeType
-	}
-}
-
-extension LocalFileResponse : NSHTTPURLResponseType { }

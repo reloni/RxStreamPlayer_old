@@ -6,6 +6,7 @@ import RealmSwift
 
 class RxPlayerPlayControlsTests: XCTestCase {
 	let bag = DisposeBag()
+	let httpClient = HttpClient(session: FakeSession(dataTask: FakeDataTask(resumeClosure: { _ in })))
 	
 	override func setUp() {
 		super.setUp()
@@ -31,7 +32,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testStartPlaying() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -64,7 +64,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testPausing() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -90,7 +89,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testResuming() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -121,7 +119,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testResumingWhenNativePlayerIsNil() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -154,7 +151,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testStopping() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -183,7 +179,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testNotResumeWhenCurrentIsNil() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -202,7 +197,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testForceResumeFromNextIfCurrentIsNil() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		
@@ -226,7 +220,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testPlayUrlAddNewItemToEndAndSetAsCurrent() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		player.initWithNewItems(["https://test.com/track1.mp3", "https://test.com/track2.mp3", "https://test.com/track3.mp3"])
@@ -254,7 +247,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testSwitchToNextAfterCurrentItemFinishesPlaying() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		player.initWithNewItems(["https://test.com/track1.mp3", "https://test.com/track2.mp3", "https://test.com/track3.mp3"])
@@ -278,7 +270,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testSwitchCurrentItemToNilAfterFinishing() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		player.initWithNewItems(["https://test.com/track1.mp3", "https://test.com/track2.mp3", "https://test.com/track3.mp3"])
@@ -309,7 +300,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testRepeatQueue() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: true, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: FakeStreamPlayerUtilities())
 		player.initWithNewItems(["https://test.com/track1.mp3", "https://test.com/track2.mp3", "https://test.com/track3.mp3"])
@@ -339,22 +329,22 @@ class RxPlayerPlayControlsTests: XCTestCase {
 		XCTAssertEqual(player.current?.streamIdentifier.streamResourceUid, player.first?.streamIdentifier.streamResourceUid, "Current item should be first")
 	}
 	
-	func testSendErrorMessageIfTryingToPlayUnsupportedUrl() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
+	func testSendErrorMessageIfTryingToPlayUnsupportedUrlScheme() {
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: StreamPlayerUtilities())
 		
 		let errorExpectation = expectationWithDescription("Should rise error")
 		let correctCurrentItemExpectation = expectationWithDescription("Should switch to next item after error")
 		player.playerEvents.bindNext { e in
-			
-			if case .Error(let error) = e {// where error.code == DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(url: "", uid: "").errorCode() {
-				if case DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists = error {
+				if case PlayerEvents.CurrentItemChanged(let newItem) = e {
+					if newItem?.streamIdentifier.streamResourceUid == "https://test.com/track2.mp3" {
+						correctCurrentItemExpectation.fulfill()
+					}
+			} else if case PlayerEvents.Error(let error) = e {
+				if case DownloadManagerErrors.unsupportedUrlScheme(let url, let uid) = error {
+					XCTAssertEqual("unsupported://test.com/track1.mp3", url)
+					XCTAssertEqual("unsupported://test.com/track1.mp3", uid)
 					errorExpectation.fulfill()
-				}
-			} else if case PlayerEvents.CurrentItemChanged(let newItem) = e {
-				if newItem?.streamIdentifier.streamResourceUid == "https://test.com/track2.mp3" {
-					correctCurrentItemExpectation.fulfill()
 				}
 			}
 		}.addDisposableTo(bag)
@@ -368,7 +358,6 @@ class RxPlayerPlayControlsTests: XCTestCase {
 	}
 	
 	func testSkipAllItemsIfAllUnsupported() {
-		let httpClient = HttpClient(httpUtilities: FakeHttpUtilities())
 		let downloadManager = DownloadManager(saveData: false, fileStorage: LocalNsUserDefaultsStorage(), httpClient: httpClient)
 		let player = RxPlayer(repeatQueue: false, shuffleQueue: false, downloadManager: downloadManager, streamPlayerUtilities: StreamPlayerUtilities())
 		

@@ -3,39 +3,15 @@ import RxSwift
 import RxHttpClient
 
 public protocol DownloadManagerType {
-	func createDownloadObservable(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> Observable<StreamTaskResult>
+	func createDownloadObservable(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> Observable<StreamTaskEvents>
 	var saveData: Bool { get }
 	var fileStorage: LocalStorageType { get }
 }
 
 public enum DownloadManagerErrors : ErrorType {
-	case unsupportedUrlSchemeOrFileNotExists(url: String?, uid: String)
-	/*
-	public func errorDomain() -> String {
-		return "DownloadManagerDomain"
-	}
-	
-	public func errorCode() -> Int {
-		switch self {
-		case .unsupportedUrlSchemeOrFileNotExists: return 1
-		}
-	}
-	
-	public func errorDescription() -> String {
-		return "Unable to download data"
-	}
-	
-	public func userInfo() -> Dictionary<String, String> {
-		switch self {
-		case .unsupportedUrlSchemeOrFileNotExists(let url, let uid): return [NSLocalizedDescriptionKey: errorDescription(), "url": url ?? "", "uid": uid]
-		}
-	}*/
-}
-
-extension DownloadManagerErrors {
-	func asResult<T>() -> Result<T> {
-		return Result<T>.error(self)
-	}
+	case unsupportedUrlScheme(url: String, uid: String)
+	case unsupportedUrl(url: String, uid: String)
+	case fileNotExists(url: String, uid: String)
 }
 
 public enum PendingTaskPriority: Int {
@@ -44,27 +20,25 @@ public enum PendingTaskPriority: Int {
 	case High = 2
 }
 
-public class PendingTask {
-	internal let task: StreamDataTaskType
-	public internal(set) var priority: PendingTaskPriority
-	public internal(set) var taskDependenciesCount: UInt = 1
-	public init(task: StreamDataTaskType, priority: PendingTaskPriority = .Normal) {
+final class PendingTask {
+	let task: StreamDataTaskType
+	var priority: PendingTaskPriority
+	var taskDependenciesCount: UInt = 1
+	init(task: StreamDataTaskType, priority: PendingTaskPriority = .Normal) {
 		self.task = task
 		self.priority = priority
 	}
 }
 
-public class DownloadManager {
+public final class DownloadManager {
 	internal let serialScheduler: SerialDispatchQueueScheduler = SerialDispatchQueueScheduler(globalConcurrentQueueQOS: DispatchQueueSchedulerQOS.Utility)
 	internal var pendingTasks = [String: PendingTask]()
 	internal let simultaneousTasksCount: UInt
 	internal let runningTaskCheckTimeout: Double
+	internal let httpClient: HttpClientType
 	
 	public let saveData: Bool
 	public let fileStorage: LocalStorageType
-	internal let httpClient: HttpClientType
-	//internal let httpUtilities: HttpUtilitiesType
-	//internal let queue = dispatch_queue_create("com.cloudmusicplayer.downloadmanager.serialqueue", DISPATCH_QUEUE_SERIAL)
 	
 	internal init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpClient: HttpClientType,
 	              simultaneousTasksCount: UInt, runningTaskCheckTimeout: Double) {
@@ -75,9 +49,7 @@ public class DownloadManager {
 		self.runningTaskCheckTimeout = runningTaskCheckTimeout <= 0.0 ? 1.0 : runningTaskCheckTimeout
 	}
 	
-	public convenience init(saveData: Bool = false,
-	                        fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(),
-	                        httpClient: HttpClientType = HttpClient(sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration())) {
+	public convenience init(saveData: Bool = false, fileStorage: LocalStorageType = LocalNsUserDefaultsStorage(), httpClient: HttpClientType) {
 		self.init(saveData: saveData, fileStorage: fileStorage, httpClient: httpClient, simultaneousTasksCount: 1, runningTaskCheckTimeout: 5)
 	}
 	
@@ -125,7 +97,7 @@ public class DownloadManager {
 		return nil
 	}
 	
-	internal func createDownloadTask(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> Observable<StreamDataTaskType?> {
+	internal func createDownloadTask(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> Observable<StreamDataTaskType> {
 		return Observable.create { [weak self] observer in
 			guard let object = self else { observer.onCompleted(); return NopDisposable.instance }
 			
@@ -137,7 +109,7 @@ public class DownloadManager {
 			}
 			
 			let disposable = Observable<Void>.combineLatest(identifier.streamResourceUrl.observeOn(object.serialScheduler),
-			identifier.streamResourceType.observeOn(object.serialScheduler)) { result in
+																											identifier.streamResourceType.observeOn(object.serialScheduler)) { result in
 				// check pending tasks again before create new one
 				if let task = object.getPendingOrLocalTask(identifier, priority: priority) {
 					observer.onNext(task)
@@ -159,15 +131,14 @@ public class DownloadManager {
 				if let file = object.fileStorage.getFromStorage(identifier.streamResourceUid), path = file.path {
 					let task = LocalFileStreamDataTask(uid: identifier.streamResourceUid, filePath: path, provider: object.fileStorage.createCacheProvider(identifier.streamResourceUid,
 						targetMimeType: identifier.streamResourceContentType?.definition.MIME))
-					if let task = task {
-						object.pendingTasks[identifier.streamResourceUid] = PendingTask(task: task, priority: priority)
-						
-						observer.onNext(task)
-						observer.onCompleted()
+					
+					guard let localTask = task else {
+						observer.onError(DownloadManagerErrors.fileNotExists(url: path, uid: identifier.streamResourceUid))
 						return
 					}
-					
-					observer.onNext(task)
+					object.pendingTasks[identifier.streamResourceUid] = PendingTask(task: localTask, priority: priority)
+						
+					observer.onNext(localTask)
 					observer.onCompleted()
 					return
 				}
@@ -185,33 +156,30 @@ public class DownloadManager {
 						observer.onNext(task)
 						return
 					} else {
-						observer.onNext(nil)
+						observer.onError(DownloadManagerErrors.fileNotExists(url: resourceUrl, uid: identifier.streamResourceUid))
 						return
 					}
 				}
 				
-				guard resourceType == .HttpResource || resourceType == .HttpsResource else { observer.onNext(nil); return }
-				
-				//guard let urlRequest = object.httpClient.createUrlRequest(resourceUrl, parameters: nil, headers: (identifier as? StreamHttpResourceIdentifier)?.streamHttpHeaders) else {
-				//	observer.onNext(nil)
-				//	return
-				//}
-				guard let url = NSURL(baseUrl: resourceUrl, parameters: nil) else {
-					observer.onNext(nil)
+				guard resourceType == .HttpResource || resourceType == .HttpsResource else {
+					observer.onError(DownloadManagerErrors.unsupportedUrlScheme(url: resourceUrl, uid: identifier.streamResourceUid))
 					return
 				}
 				
-				let cacheProvider = object.fileStorage.createCacheProvider(identifier.streamResourceUid, targetMimeType: identifier.streamResourceContentType?.definition.MIME)
+				guard let url = NSURL(baseUrl: resourceUrl, parameters: nil) else {
+					observer.onError(DownloadManagerErrors.unsupportedUrl(url: resourceUrl, uid: identifier.streamResourceUid))
+					return
+				}
+			
 				let urlRequest = object.httpClient.createUrlRequest(url, headers: (identifier as? StreamHttpResourceIdentifier)?.streamHttpHeaders)
-				let task = object.httpClient.createStreamDataTask(urlRequest, cacheProvider: cacheProvider)
-				//let task = object.httpUtilities.createStreamDataTask(identifier.streamResourceUid, request: urlRequest,
-				//	sessionConfiguration: NSURLSession.defaultConfig,
-				//	cacheProvider: object.fileStorage.createCacheProvider(identifier.streamResourceUid,
-				//		targetMimeType: identifier.streamResourceContentType?.definition.MIME))
+				
+				let task = object.httpClient.createStreamDataTask(identifier.streamResourceUid,
+					request: urlRequest,
+					cacheProvider: object.fileStorage.createCacheProvider(identifier.streamResourceUid,	targetMimeType: identifier.streamResourceContentType?.definition.MIME))
 				
 				object.pendingTasks[identifier.streamResourceUid] = PendingTask(task: task, priority: priority)
 				observer.onNext(task)
-				}.doOnCompleted { observer.onCompleted() }.subscribeOn(object.serialScheduler).subscribe()
+			}.doOnCompleted { observer.onCompleted() }.subscribeOn(object.serialScheduler).subscribe()
 			
 			return AnonymousDisposable {
 				disposable.dispose()
@@ -248,34 +216,26 @@ public class DownloadManager {
 }
 
 extension DownloadManager : DownloadManagerType {
-	public func createDownloadObservable(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> Observable<StreamTaskResult> {
-		return Observable<StreamTaskResult>.create { [weak self] observer in
+	public func createDownloadObservable(identifier: StreamResourceIdentifier, priority: PendingTaskPriority) -> Observable<StreamTaskEvents> {
+		return Observable<StreamTaskEvents>.create { [weak self] observer in
 			guard let object = self else { observer.onCompleted(); return NopDisposable.instance }
 			
-			let disposable = object.createDownloadTask(identifier, priority: priority).single().catchError{ error in
-				observer.onNext(DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(url: "", uid: identifier.streamResourceUid).asResult())
-				observer.onCompleted()
+			let disposable = object.createDownloadTask(identifier, priority: priority).catchError{ error in
+				observer.onError(error)
 				return Observable.empty()
-				}.flatMapLatest { result -> Observable<Void> in
-					guard let task = result else {
-						observer.onNext(DownloadManagerErrors.unsupportedUrlSchemeOrFileNotExists(url: "", uid: identifier.streamResourceUid).asResult())
-						observer.onCompleted()
+				}.flatMapLatest { task -> Observable<Void> in
+					let streamTask = task.taskProgress.observeOn(object.serialScheduler).catchError { error in
+						object.removePendingTask(identifier.streamResourceUid, force: true)
+						observer.onError(error)
 						return Observable.empty()
-					}
-					
-					let streamTask = task.taskProgress.observeOn(object.serialScheduler).doOnError { error in
-						object.removePendingTask(identifier.streamResourceUid, force: true); observer.onNext(Result.error(error)); observer.onCompleted()
 						}.doOnNext { result in
-							if case Result.success(let event) = result {
-								if case .Success(let provider) = event.value {
-									object.saveData(provider)
-									object.removePendingTask(identifier.streamResourceUid, force: true)
-									observer.onNext(result)
-								} else {
-									observer.onNext(result)
-								}
-							} else if case Result.error = result {
-								self?.removePendingTask(identifier.streamResourceUid, force: true)
+							if case .Success(let provider) = result {
+								object.saveData(provider)
+								object.removePendingTask(identifier.streamResourceUid, force: true)
+								observer.onNext(result)
+							} else if case .Error(let error) = result {
+								observer.onError(error)
+							}	else {
 								observer.onNext(result)
 							}
 					}

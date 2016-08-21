@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import RxSwift
 
-public class RxPlayerQueueItem {
+public final class RxPlayerQueueItem {
 	public var parent: RxPlayerQueueItem? {
 		return player.getItemBefore(streamIdentifier)
 	}
@@ -13,7 +13,6 @@ public class RxPlayerQueueItem {
 	public let player: RxPlayer
 	public var inQueue: Bool {
 		return player.getQueueItemByUid(streamIdentifier.streamResourceUid) != nil
-		//return player.itemsSet.indexOfObject(streamIdentifier.asQueueSetItem()) != NSNotFound
 	}
 	
 	public init(player: RxPlayer, streamIdentifier: StreamResourceIdentifier) {
